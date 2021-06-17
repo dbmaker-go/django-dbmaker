@@ -191,7 +191,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             null = True
         if null and not self.connection.features.implied_column_null:
             sql += " NULL"
-        elif not null and field.get_internal_type() not in ('AutoField', 'BigAutoField'):
+        elif not null and field.get_internal_type() not in ('SmallAutoField', 'AutoField', 'BigAutoField', 'JSONField'):
             sql += " NOT NULL"
         # Primary key/unique outputs
         if field.primary_key:

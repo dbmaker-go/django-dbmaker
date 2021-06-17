@@ -41,19 +41,20 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pyodbc as Database
-from django.db.backends.base.introspection import (
-    BaseDatabaseIntrospection, FieldInfo, TableInfo,
-)
 import sqlparse
+from collections import namedtuple
+from django.db import models
+from django.db.backends.base.introspection import (
+    BaseDatabaseIntrospection, FieldInfo as BaseFieldInfo, TableInfo,
+)
+
 from django.utils.datastructures import OrderedSet
-SQL_AUTOFIELD = -777555
-SQL_BIGAUTOFIELD = -777444
+
+FieldInfo = namedtuple('FieldInfo', BaseFieldInfo._fields + ('is_autofield', 'is_json'))
 
 class DatabaseIntrospection(BaseDatabaseIntrospection):
     # Map type codes to Django Field types.
     data_types_reverse = {
-        SQL_AUTOFIELD:                  'AutoField',
-        SQL_BIGAUTOFIELD:               'BigAutoField',
         Database.SQL_BIGINT:            'BigIntegerField',
         Database.SQL_BINARY:            'BinaryField',
         Database.SQL_BIT:               'NullBooleanField',
@@ -76,9 +77,20 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         Database.SQL_VARCHAR:           'TextField',
         Database.SQL_WCHAR:             'CharField',
         Database.SQL_WLONGVARCHAR:      'TextField',
-        Database.SQL_WVARCHAR:          'TextField',
+        Database.SQL_WVARCHAR:          'CharField',
     }
 
+    def get_field_type(self, data_type, description):
+        field_type = super().get_field_type(data_type, description)
+        if description.is_autofield:
+            if field_type == 'IntegerField':
+                return 'AutoField'
+            elif field_type == 'BigIntegerField':
+                return 'BigAutoField'
+        if description.is_json:
+            return 'JSONField'
+        return field_type
+    
     def get_table_list(self, cursor):
         """
         Returns a list of table names in the current database.
@@ -86,19 +98,6 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         cursor.execute("SELECT trim(TABLE_NAME), trim(TABLE_TYPE) FROM INFORMATION_SCHEMA.TABLES")
         types = {'TABLE': 't', 'VIEW': 'v'}
         return [TableInfo(self.identifier_converter(row[0]), types.get(row[1])) for row in cursor.fetchall()]
-
-    def _is_auto_field(self, cursor, table_name, column_name):
-        """
-        Checks whether column is Identity
-        """
-        # COLUMNPROPERTY: http://msdn2.microsoft.com/en-us/library/ms174968.aspx
-
-        #from django.db import connection
-        #cursor.execute("SELECT COLUMNPROPERTY(OBJECT_ID(%s), %s, 'IsIdentity')",
-        #                 (connection.ops.quote_name(table_name), column_name))
-        cursor.execute("SELECT COUNT(*) FROM SYSCOLUMN WHERE TABLE_NAME = UPPER(%s) AND COLUMN_NAME=UPPER(%s) AND TYPE_NAME='SERIAL'",
-                         (self.connection.ops.quote_name(table_name), column_name))
-        return cursor.fetchall()[0][0]
 
     def get_table_description(self, cursor, table_name, identity_check=True):
         """Returns a description of the table, with DB-API cursor.description interface.
@@ -110,20 +109,39 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         When a field is found with an IDENTITY property, it is given a custom field number
         of SQL_AUTOFIELD, which maps to the 'AutoField' value in the DATA_TYPES_REVERSE dict.
         """
-
+        cursor.execute("""
+            SELECT
+                TRIM(SYSCOLUMN.column_name),
+                CASE
+                    WHEN (1=1) 
+                    THEN NULL
+                END,
+                CASE
+                    WHEN (SYSCOLUMN.TYPE_NAME = 'SERIAL' or SYSCOLUMN.TYPE_NAME = 'BIGSERIAL')  THEN 1
+                    ELSE 0
+                END as is_autofield,
+                CASE
+                    WHEN SYSCOLUMN.TYPE_NAME = 'JSONCOLS'
+                    THEN 1
+                    ELSE 0
+                END as is_json
+            FROM SYSCOLUMN
+            LEFT OUTER JOIN
+                SYSTABLE ON SYSTABLE.table_name = SYSCOLUMN.table_name
+            WHERE SYSCOLUMN.table_name = UPPER(%s)
+        """, [table_name])
+        field_map = {
+            column: (collation, is_autofield, is_json)
+            for column, collation, is_autofield, is_json in cursor.fetchall()
+        }
         # map pyodbc's cursor.columns to db-api cursor description
         columns = [[c[3], c[4], None, c[6], c[6], c[8], c[10], c[12]] for c in cursor.columns(table=table_name)]
         items = []
         for column in columns:
+            name = column[0]            
             column[0] = self.identifier_converter(column[0])
-            if identity_check and self._is_auto_field(cursor, table_name, column[0]):
-                column[1] = SQL_AUTOFIELD
-            # The conversion from TextField to CharField below is unwise.
-            #   A SQLServer db field of type "Text" is not interchangeable with a CharField, no matter how short its max_length.
-            #   For example, model.objects.values(<text_field_name>).count() will fail on a sqlserver 'text' field
-            if column[1] == Database.SQL_WVARCHAR and column[3] < 4000:
-                column[1] = Database.SQL_WCHAR    
-            items.append(FieldInfo(*column))
+            collation, is_autofield, is_json = field_map[name]  
+            items.append(FieldInfo(*column, collation, is_autofield, is_json))
             
         return items  
     

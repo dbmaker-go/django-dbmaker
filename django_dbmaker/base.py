@@ -86,8 +86,10 @@ from django.db.backends.signals import connection_created
 
 from django.conf import settings
 from django import VERSION as DjangoVersion
-if DjangoVersion[:2] == (2, 2):
-    _DJANGO_VERSION = 22
+_DJANGO_VERSION = 30
+'''
+if DjangoVersion[:1] == (3):
+    _DJANGO_VERSION = 30
 else:
     if DjangoVersion[0] == 1:
         raise ImproperlyConfigured("Django %d.%d " % DjangoVersion[:2] + 
@@ -96,10 +98,11 @@ else:
             "version of Django is supported by django-pyodbc")
     else:
         raise ImproperlyConfigured("Django %d.%d is not supported." % DjangoVersion[:2])
+'''
 
 from django_dbmaker.operations import DatabaseOperations
 from django_dbmaker.client import DatabaseClient
-from django_dbmaker.compat import binary_type, text_type, timezone
+from django.utils import timezone
 from django_dbmaker.creation import DatabaseCreation
 from django_dbmaker.introspection import DatabaseIntrospection
 from .schema import DatabaseSchemaEditor
@@ -145,6 +148,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'GenericIPAddressField':        'nvarchar(39)',
         'IntegerField':                 'int',
         'IPAddressField':               'nvarchar(15)',
+        'JSONField':                    'jsoncols',
         'LegacyDateField':              'timestamp',
         'LegacyDateTimeField':          'timestamp',
         'LegacyTimeField':              'time',
@@ -156,6 +160,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'PositiveIntegerField':         'int',
         'PositiveSmallIntegerField':    'smallint',
         'SlugField':                    'nvarchar(%(max_length)s)',
+        'SmallAutoField':               'serial',
         'SmallIntegerField':            'smallint',
         'TextField':                    'nclob',
         'TimeField':                    'time',
@@ -387,11 +392,7 @@ class CursorWrapper(object):
     def format_params(self, params):
         fp = []
         for p in params:
-            if isinstance(p, text_type):
-                fp.append(p)
-            elif isinstance(p, binary_type):
-                fp.append(p)
-            elif isinstance(p, type(True)):
+            if isinstance(p, type(True)):
                 if p:
                     fp.append(1)
                 else:
