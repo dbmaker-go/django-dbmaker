@@ -25,7 +25,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
    
     sql_create_inline_fk = None
     sql_delete_fk = "ALTER TABLE %(table)s DROP FOREIGN KEY %(name)s"
-    sql_delete_pk = "ALTER TABLE %(table)s DROP PRIMARY KEY %(name)s"
+    sql_delete_pk = "ALTER TABLE %(table)s DROP PRIMARY KEY"
 
     sql_delete_index = "DROP INDEX %(name)s FROM %(table)s"
     sql_create_fk = (
