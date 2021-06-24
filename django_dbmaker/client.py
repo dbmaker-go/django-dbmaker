@@ -39,11 +39,6 @@
 # ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import os
-import subprocess
-import signal
-
-from django.core.files.temp import NamedTemporaryFile
 from django.db.backends.base.client import BaseDatabaseClient
 
 class DatabaseClient(BaseDatabaseClient):
@@ -55,46 +50,3 @@ class DatabaseClient(BaseDatabaseClient):
          args.extend(parameters)
          return args, None
 
-    def runshell(self, parameters):
-        settings_dict = self.connection.settings_dict
-        user = settings_dict['OPTIONS'].get('user', settings_dict['USER'])
-        password = settings_dict['OPTIONS'].get('passwd', settings_dict['PASSWORD'])
-        db = settings_dict['OPTIONS'].get('db', settings_dict['NAME'])
-
-        args = [self.executable_name]
-       
-        subprocess.check_call(args)
-        
-        
-        ''' dmsql32 xxx.sql /b can not run it in subprocess, so please input connect to test_utf8db sysadm; q;
-        temp_file = None
-        sigint_handler = signal.getsignal(signal.SIGINT)
-        try:
-            temp_file = NamedTemporaryFile(mode='w+', dir='c:/DBMaker/5.4/bin/')
-            try:
-                print(
-                    'connect to',
-                    db, 
-                    user,
-                    password,
-                    '; q;',
-                    file=temp_file,
-                    sep=' ',
-                    flush=True,
-                    )
-            #    args += [temp_file.name]
-            #    args += ['/b']
-            except UnicodeEncodeError:
-                    # If the current locale can't encode the data, let the
-                    # user input the password manually.
-                pass
-            signal.signal(signal.SIGINT, signal.SIG_IGN)
-            subprocess.check_call(args)
-        finally:
-            signal.signal(signal.SIGINT, sigint_handler)
-            if temp_file:
-                temp_file.close()
-        '''
-        # XXX: This works only with Python >= 2.4 because subprocess was added
-        # in that release
- 

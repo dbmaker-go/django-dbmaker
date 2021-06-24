@@ -103,6 +103,7 @@ else:
 from django_dbmaker.operations import DatabaseOperations
 from django_dbmaker.client import DatabaseClient
 from django.utils import timezone
+from django.utils.asyncio import async_unsafe
 from django_dbmaker.creation import DatabaseCreation
 from django_dbmaker.introspection import DatabaseIntrospection
 from .schema import DatabaseSchemaEditor
@@ -265,7 +266,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         if settings_dict['PORT']:
             conn_params['port'] = settings_dict['PORT']
         return conn_params
-
+    
+    @async_unsafe
     def get_new_connection(self, conn_params):
         connection = Database.connect(**conn_params)
         return connection

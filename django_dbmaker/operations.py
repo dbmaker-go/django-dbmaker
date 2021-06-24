@@ -249,8 +249,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         else:
             sql = "CAST(STRDATETIME(%s, 'start of %s') AS TIMESTAMP)" % (field_name, fields[i])
         return sql
-    
-    def time_trunc_sql(self, lookup_type, field_name):
+
+    def time_trunc_sql(self, lookup_type, field_name, tzname=None):  
         fields = ['hour', 'minute']
         if lookup_type in fields:
             format_str = fields[lookup_type]
