@@ -157,6 +157,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'NewTimeField':                 'time',
         'NullBooleanField':             'int',
         'OneToOneField':                'int',
+        'PositiveBigIntegerField':      'bigint',
         'PositiveIntegerField':         'int',
         'PositiveSmallIntegerField':    'smallint',
         'SlugField':                    'nvarchar(%(max_length)s)',
@@ -168,6 +169,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
 
     data_type_check_constraints = {
+        'PositiveBigIntegerField': '"%(column)s" >= 0',
         'PositiveIntegerField': '"%(column)s" >= 0',
         'PositiveSmallIntegerField': '"%(column)s" >= 0',
     }

@@ -49,7 +49,13 @@ from django.db.backends.base.client import BaseDatabaseClient
 class DatabaseClient(BaseDatabaseClient):
     executable_name = 'dmsql32'
     
-    def runshell(self):
+    @classmethod
+    def settings_to_cmd_args_env(cls, settings_dict, parameters):
+         args = [cls.executable_name]
+         args.extend(parameters)
+         return args, None
+
+    def runshell(self, parameters):
         settings_dict = self.connection.settings_dict
         user = settings_dict['OPTIONS'].get('user', settings_dict['USER'])
         password = settings_dict['OPTIONS'].get('passwd', settings_dict['PASSWORD'])
