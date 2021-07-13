@@ -69,7 +69,7 @@ from django.utils.duration import duration_microseconds
 class DatabaseOperations(BaseDatabaseOperations):
     compiler_module = "django_dbmaker.compiler"
         
-    cast_char_field_without_max_length = 'NVARCHAR2(256)'
+    cast_char_field_without_max_length = 'VARCHAR(256)'
     cast_data_types = {
         'AutoField': 'INT',
         'BigAutoField': 'BIGINT',

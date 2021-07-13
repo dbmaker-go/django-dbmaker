@@ -43,11 +43,15 @@
 import re
 from django.db.models.sql import compiler, where
 from django.db.models.aggregates import Avg
+from django.db.models.functions.math import Random
 import django
 import types
 
 def _as_sql_agv(self, compiler, connection):
     return self.as_sql(compiler, connection,  template='%(function)s(CAST(%(field)s AS FLOAT))')
+
+def _as_sql_random(self, compiler, connection):
+    return self.as_sql(compiler, connection, function='RAND')
 
 class SQLCompiler(compiler.SQLCompiler):  
        
@@ -59,6 +63,8 @@ class SQLCompiler(compiler.SQLCompiler):
         as_dbmaker = None
         if isinstance(node, Avg):
             as_dbmaker = _as_sql_agv
+        elif isinstance(node, Random):
+            as_dbmaker = _as_sql_random
         if as_dbmaker:
             node = node.copy()
             node.as_dbmaker = types.MethodType(as_dbmaker, node)
