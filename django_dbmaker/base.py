@@ -183,7 +183,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         # to make it case (in)sensitive. It will simply fallback to the
         # database collation.
         'exact': '= %s',
-        'iexact': '= %s',
+        'iexact': '= upper(%s)',
         #'iexact': "= (%s)",
         'contains': "LIKE %s ESCAPE '\\'",
         'icontains': "LIKE %s ESCAPE '\\'",

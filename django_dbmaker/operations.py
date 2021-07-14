@@ -268,8 +268,8 @@ class DatabaseOperations(BaseDatabaseOperations):
                 lookup = "CAST(%s AS VARCHAR(32))"
 
         #  DBMaker not support Upper() like so ignore it
-        #if lookup_type in ('iexact', 'icontains', 'istartswith', 'iendswith'):
-            #lookup = 'UPPER(%s)' % lookup
+        if lookup_type == 'iexact':
+            lookup = 'UPPER(%s)' % lookup
 
         return lookup
 
