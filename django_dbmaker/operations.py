@@ -157,6 +157,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             return "WEEK(%s)" % field_name
         elif lookup_type == 'quarter':
             return "QUARTER(%s)" % field_name
+        elif lookup_type == 'year':
+            return "YEAR(%s)" % field_name
         elif lookup_type == 'month':
             return "MONTH(%s)" % field_name
         elif lookup_type == 'day':
