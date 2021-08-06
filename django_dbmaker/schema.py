@@ -147,13 +147,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def quote_value(self, value):
         if isinstance(value, (datetime.date, datetime.time, datetime.datetime)):
             return "'%s'" % value
-        elif isinstance(value, str):
-            if '\(\)' in value:
-                return "'%s'" % value.replace("\(\)", "()")
-            elif '()' not in value:
-                return "'%s'" %  value.replace("\'", "\'\'")
-            else:
-                return str(value)
+        elif isinstance(value, str):          
+            return "'%s'" %  value.replace("\'", "\'\'")
         elif isinstance(value, (bytes, bytearray, memoryview)):
             return  "X'%s'" % value.hex()
         elif isinstance(value, bool):
@@ -186,7 +181,11 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     # Some databases can't take defaults as a parameter (oracle)
                     # If this is the case, the individual schema backend should
                     # implement prepare_default
-                    sql += " DEFAULT %s" % self.prepare_default(default_value)
+                    #dbmaker nclob replace default_val to ''
+                    if field.get_internal_type() == 'TextField' and len(default_value)>32:
+                        sql += " DEFAULT \'\'"
+                    else:
+                        sql += " DEFAULT %s" % self.prepare_default(default_value)
                 else:
                     sql += " DEFAULT %s"
                     params += [default_value]
