@@ -182,7 +182,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     # If this is the case, the individual schema backend should
                     # implement prepare_default
                     #dbmaker nclob replace default_val to ''
-                    if field.get_internal_type() == 'TextField' and len(default_value)>32:
+                    if field.get_internal_type() == 'TextField' and len(default_value)>31:
                         sql += " DEFAULT \'\'"
                     else:
                         sql += " DEFAULT %s" % self.prepare_default(default_value)
