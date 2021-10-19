@@ -186,7 +186,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         if lookup_type == 'month':
             return "TO_DATE(STRDATE(%s, 'start of month'), 'yyyy-mm-dd')" % field_name
         elif lookup_type == 'quarter':
-            return "MDY(YEAR(%s), (QUARTER(%s)-1)*3+1, 1)" % (field_name , field_name)
+            return "MDY((QUARTER(%s)-1)*3+1, 1, YEAR(%s))" % (field_name , field_name)
         elif lookup_type == 'week':
             return "TO_DATE(STRDATE(%s, 'start of week'), 'yyyy-mm-dd')" % field_name
         else:
@@ -215,8 +215,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         """
         Returns UTC offset for given time zone in seconds
         """
-        # SQL Server has no built-in support for tz database
-        # see http://blogs.msdn.com/b/sqlprogrammability/archive/2008/03/18/using-time-zone-data-in-sql-server-2008.aspx
         zone = pytz.timezone(tzname)
         # no way to take DST into account at this point
         now = datetime.datetime.now()
@@ -269,7 +267,6 @@ class DatabaseOperations(BaseDatabaseOperations):
             if internal_type in ('AutoField', 'IntegerField', 'DateTimeField', 'BooleanField'):
                 lookup = "CAST(%s AS VARCHAR(32))"
 
-        #  DBMaker not support Upper() like so ignore it
         if lookup_type == 'iexact':
             lookup = 'UPPER(%s)' % lookup
 
@@ -439,7 +436,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         # Expression values are adapted by the database.
         if hasattr(value, 'resolve_expression'):
             return value
-        # SQL Server doesn't support microseconds
         if isinstance(value, str):
             return datetime.datetime(*(time.strptime(value, '%H:%M:%S')[:6]))
         if timezone.is_aware(value):
@@ -457,7 +453,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         `value` is an int, containing the looked-up year.
         """
         first = '%s-01-01 00:00:00'
-        # SQL Server doesn't support microseconds
         last = '%s-12-31 23:59:59'
         return [first % value, last % value]
    
@@ -493,8 +488,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         if value is not None:
             value = uuid.UUID(value)
         return value
-    
-
     
     def no_limit_value(self):
         return None
