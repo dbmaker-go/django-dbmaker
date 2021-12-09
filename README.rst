@@ -29,6 +29,7 @@ Installation
       python setup.py install
       
 2. Now you can now add a database to your settings using standard ODBC parameters.
+   Note: you need to create utf-8 database first before add it to your settings.
 
    .. code:: python
 
