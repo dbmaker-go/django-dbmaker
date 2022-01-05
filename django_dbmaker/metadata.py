@@ -1,4 +1,4 @@
-# Copyright (c) 2008, django-pyodbc developers (see README.rst).
+﻿# Copyright (c) 2008, django-pyodbc developers (see README.rst).
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-__version__ = "2.2.17.4"
+__version__ = "2.2.17.5"
 __maintainer__ = "linda"
 __maintainer_email__ = "lina.102@163.com"
 __license__ = "BSD 3-Clause License"
