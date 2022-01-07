@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # Copyright 2013-2017 Lionheart Software LLC
@@ -37,7 +37,7 @@ with open(os.path.join(os.path.dirname(__file__), "README.rst")) as file:
 
 metadata = {}
 metadata_file = "django_dbmaker/metadata.py"
-exec(compile(open(metadata_file).read(), metadata_file, 'exec'), metadata)
+exec(compile(open(metadata_file, encoding='utf-8').read(), metadata_file, 'exec'), metadata)
 
 # http://pypi.python.org/pypi?:action=list_classifiers
 classifiers = [
