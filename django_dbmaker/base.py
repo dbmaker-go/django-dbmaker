@@ -266,7 +266,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def init_connection_state(self):
         cursor = self.create_cursor()
         cursor.execute("set string concat on")
-        cursor.execute("set free catalog cache on") 
+        cursor.execute("set free catalog cache on")
+        cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
         cursor.close()
         if not self.get_autocommit():
             self.commit()
