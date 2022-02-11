@@ -9,7 +9,7 @@ This is a fork of the original `django-pyodbc <https://github.com/lionheart/djan
 Features
 --------
 
-* [x] Support for Django 3.0~
+* [x] Support for Django 3.2~
 * [x] Support for DBMaker
 * [x] Passes most of the tests of the Django test suite.
 
