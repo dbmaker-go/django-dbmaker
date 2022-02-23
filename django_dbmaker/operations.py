@@ -57,9 +57,10 @@ from django.conf import settings
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db import utils
 from django.utils.dateparse import parse_date, parse_time, parse_datetime
-from django.db.models import Exists, ExpressionWrapper
+from django.db.models import Exists, ExpressionWrapper, Lookup
 from django.db.models.expressions import RawSQL
 from django.db.models.sql.where import WhereNode
+#from django.db.models.lookups import GreaterThan
 
 #from django_dbmaker.compat import smart_text, string_types, timezone
 #from django.utils import six
@@ -104,7 +105,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         return self._right_sql_quote
         
     def conditional_expression_supported_in_where_clause(self, expression):
-        if isinstance(expression, (Exists, WhereNode)):
+        if isinstance(expression, (Exists, Lookup,  WhereNode)):
             return True
         if isinstance(expression, ExpressionWrapper) and expression.conditional:
             return self.conditional_expression_supported_in_where_clause(expression.expression)
