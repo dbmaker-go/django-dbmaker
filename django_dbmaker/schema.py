@@ -6,6 +6,41 @@ from django.db.backends.utils import split_identifier
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import NOT_PROVIDED
 
+def _is_relevant_relation(relation, altered_field):
+    """
+    When altering the given field, must constraints on its model from the given
+    relation be temporarily dropped?
+    """
+    field = relation.field
+    if field.many_to_many:
+        # M2M reverse field
+        return False
+    if altered_field.primary_key and field.to_fields == [None]:
+        # Foreign key constraint on the primary key, which is being altered.
+        return True
+    # Is the constraint targeting the field being altered?
+    return altered_field.name in field.to_fields
+
+
+def _all_related_fields(model):
+    return model._meta._get_fields(
+        forward=False, reverse=True, include_hidden=True, include_parents=False,
+    )
+
+
+def _related_non_m2m_objects(old_field, new_field):
+    # Filter out m2m objects from reverse relations.
+    # Return (old_relation, new_relation) tuples.
+    related_fields = zip(
+        (obj for obj in _all_related_fields(old_field.model) if _is_relevant_relation(obj, old_field)),
+        (obj for obj in _all_related_fields(new_field.model) if _is_relevant_relation(obj, new_field)),
+    )
+    for old_rel, new_rel in related_fields:
+        yield old_rel, new_rel
+        yield from _related_non_m2m_objects(
+            old_rel.remote_field,
+            new_rel.remote_field,
+        )
 
 class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     
