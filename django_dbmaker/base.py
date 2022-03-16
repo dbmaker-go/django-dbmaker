@@ -326,7 +326,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cstr_parts.append('DATABASE=%s' % db_str)
         connectionstring = ';'.join(cstr_parts)
         return connectionstring
-
+    
+    @async_unsafe
     def create_cursor(self, name=None):
         return CursorWrapper(self.connection.cursor(), self)
 
