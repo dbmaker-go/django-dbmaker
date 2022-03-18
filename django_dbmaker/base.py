@@ -61,19 +61,21 @@ except ImportError:
     raise ImproperlyConfigured("Error loading pyodbc module: %s" % e)
 
 #logger = logging.getLogger('django.db.backends')
-#logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 #handler = logging.FileHandler('mylog.log')
 #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#handler.setFormatter(formatter)
-#logger.addHandler(handler)
+# handler.setFormatter(formatter)
+# logger.addHandler(handler)
 #logger.debug('This is a DEBUG message')
 
 m = re.match(r'(\d+)\.(\d+)\.(\d+)(?:-beta(\d+))?', Database.version)
 vlist = list(m.groups())
-if vlist[3] is None: vlist[3] = '9999'
+if vlist[3] is None:
+    vlist[3] = '9999'
 pyodbc_ver = tuple(map(int, vlist))
 if pyodbc_ver < (2, 0, 38, 9999):
-    raise ImproperlyConfigured("pyodbc 2.0.38 or newer is required; you have %s" % Database.version)
+    raise ImproperlyConfigured(
+        "pyodbc 2.0.38 or newer is required; you have %s" % Database.version)
 
 from django.db import utils
 try:
@@ -111,6 +113,7 @@ from .features import DatabaseFeatures
 
 DatabaseError = Database.Error
 IntegrityError = Database.IntegrityError
+
 
 class DatabaseWrapper(BaseDatabaseWrapper):
     vendor = 'dbmaker'
@@ -166,7 +169,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'SmallIntegerField':            'smallint',
         'TextField':                    'nclob',
         'TimeField':                    'time',
-        'UUIDField':                    'char(32)',       
+        'UUIDField':                    'char(32)',
     }
 
     data_type_check_constraints = {
@@ -176,7 +179,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
 
     _limited_data_types = (
-       'file', 'jsoncols',
+        'file', 'jsoncols',
     )
     operators = {
         # Since '=' is used not only for string comparision there is no way
@@ -222,14 +225,16 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     }
 
     # In Django 1.8 data_types was moved from DatabaseCreation to DatabaseWrapper.
-    # See https://docs.djangoproject.com/en/1.10/releases/1.8/#database-backend-api
+    # See
+    # https://docs.djangoproject.com/en/1.10/releases/1.8/#database-backend-api
     SchemaEditorClass = DatabaseSchemaEditor
     features_class = DatabaseFeatures
     ops_class = DatabaseOperations
     client_class = DatabaseClient
     creation_class = DatabaseCreation
     introspection_class = DatabaseIntrospection
-    validation_class = BaseDatabaseValidation  
+    validation_class = BaseDatabaseValidation
+
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
         self.test_create = self.settings_dict.get('TEST_CREATE', True)
@@ -266,7 +271,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         if settings_dict['PORT']:
             conn_params['port'] = settings_dict['PORT']
         return conn_params
-    
+
     @async_unsafe
     def get_new_connection(self, conn_params):
         connection = Database.connect(**conn_params)
@@ -303,14 +308,15 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             port_str = settings_dict['PORT']
 
         if not db_str:
-            raise ImproperlyConfigured('You need to specify NAME in your Django settings file.')
+            raise ImproperlyConfigured(
+                'You need to specify NAME in your Django settings file.')
 
         cstr_parts = []
         if 'driver' in options:
             driver = options['driver']
         else:
             driver = 'DBMaker 5.4 Driver'
-   
+
         if 'dsn' in options:
             cstr_parts.append('DSN=%s' % options['dsn'])
         else:
@@ -326,32 +332,32 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cstr_parts.append('DATABASE=%s' % db_str)
         connectionstring = ';'.join(cstr_parts)
         return connectionstring
-    
+
     @async_unsafe
     def create_cursor(self, name=None):
         return CursorWrapper(self.connection.cursor(), self)
 
     def _execute_foreach(self, sql, table_names=None):
         cursor = self.cursor()
-        if not table_names:
+        if table_names is not None:
             table_names = self.introspection.get_table_list(cursor)
         for table_name in table_names:
             cursor.execute(sql % self.ops.quote_name(table_name))
 
     def check_constraints(self, table_names=None):
         self.cursor().execute('CALL SETSYSTEMOPTION(\'FKCHK\', \'1\');')
-         
+
     def disable_constraint_checking(self):
         # Windows Azure SQL Database doesn't support sp_msforeachtable
         #cursor.execute('EXEC sp_msforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT ALL"')
         self.cursor().execute('CALL SETSYSTEMOPTION(\'FKCHK\', \'0\');')
         return True
-               
+
     def enable_constraint_checking(self):
         # Windows Azure SQL Database doesn't support sp_msforeachtable
         #cursor.execute('EXEC sp_msforeachtable "ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL"')
         self.check_constraints()
-    
+
     def is_usable(self):
         try:
             # Use a psycopg cursor directly, bypassing Django's utilities.
@@ -359,7 +365,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         except Database.Error:
             return False
         else:
-            return True    
+            return True
 
 
 class CursorWrapper(object):
@@ -367,6 +373,7 @@ class CursorWrapper(object):
     A wrapper around the pyodbc's cursor that takes in account a) some pyodbc
     DB-API 2.0 implementation and b) some common ODBC driver particularities.
     """
+
     def __init__(self, cursor, connection):
         self.active = True
         self.cursor = cursor
@@ -384,12 +391,12 @@ class CursorWrapper(object):
         # pyodbc uses '?' instead of '%s' as parameter placeholder.
         if n_params is not None:
             try:
-                if '%s' in sql and n_params>0:
+                if '%s' in sql and n_params > 0:
                     sql = sql.replace('%s', '?')
                 else:
                     sql = sql % tuple('?' * n_params)
             except Exception as e:
-                #Todo checkout whats happening here
+                # Todo checkout whats happening here
                 pass
         else:
             if '%s' in sql:
@@ -407,14 +414,14 @@ class CursorWrapper(object):
             else:
                 fp.append(p)
         return tuple(fp)
-    
+
     def quote_value(self, value):
         if isinstance(value, (datetime.date, datetime.time, datetime.datetime)):
             return "cast('%s' as timestamp)" % value
         elif isinstance(value, str):
             return "'%s'" % value.replace("\'", "\'\'")
         elif isinstance(value, (bytes, bytearray, memoryview)):
-            return  "X'%s'" % value.hex()
+            return "X'%s'" % value.hex()
         elif isinstance(value, bool):
             return "1" if value else "0"
         elif value is None:
@@ -422,11 +429,11 @@ class CursorWrapper(object):
         else:
             return str(value)
 
-    def execute(self, sql, params=()):       
+    def execute(self, sql, params=()):
         self.last_sql = sql
         if (('CASE WHEN' in sql) or
-             ( '(%s) AS' in sql) or
-             ('LIKE %s' in sql)) and params is not None:
+                ('(%s) AS' in sql) or
+                ('LIKE %s' in sql)) and params is not None:
             sql = sql % tuple(map(self.quote_value, params))
             return self.cursor.execute(sql)
         else:
@@ -443,16 +450,18 @@ class CursorWrapper(object):
             logger = logging.getLogger('django.db.backends')
             logger.setLevel(logging.ERROR)
             handler = logging.FileHandler('mylog.log')
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)
             logger.addHandler(handler)
             logger.error('DEBUG SQL')
-            logger.error("----------------------------------------------------------------------------")
+            logger.error(
+                "----------------------------------------------------------------------------")
             logger.error(sql)
             logger.error(params)
             e = sys.exc_info()[1]
             raise utils.DatabaseError(*e.args)
-        
+
     def executemany(self, sql, params_list):
         sql = self.format_sql(sql)
         # pyodbc's cursor.executemany() doesn't support an empty param_list
@@ -471,7 +480,7 @@ class CursorWrapper(object):
         except DatabaseError:
             e = sys.exc_info()[1]
             raise utils.DatabaseError(*e.args)
-    
+
     def format_results(self, rows):
         """
         Decode data coming from the database if needed and convert rows to tuples
@@ -509,7 +518,6 @@ class CursorWrapper(object):
     def __iter__(self):
         return iter(self.cursor)
 
-
     # # MS SQL Server doesn't support explicit savepoint commits; savepoints are
     # # implicitly committed with the transaction.
     # # Ignore them.
@@ -524,11 +532,11 @@ class CursorWrapper(object):
 
     def _savepoint_allowed(self):
         return self.in_atomic_block
-    
 
-# copied from Django 
+
+# copied from Django
 # https://github.com/django/django/blob/0bf7b25f8f667d3710de91e91ae812efde05187c/django/db/backends/utils.py#L92
-# Not optimized/refactored to maintain a semblance to the original code 
+# Not optimized/refactored to maintain a semblance to the original code
 class CursorDebugWrapper(CursorWrapper):
 
     def execute(self, sql, params=()):

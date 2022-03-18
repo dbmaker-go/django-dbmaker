@@ -1,6 +1,7 @@
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.utils.functional import cached_property
 
+
 class DatabaseFeatures(BaseDatabaseFeatures):
     can_use_chunked_reads = False
     supports_microsecond_precision = False

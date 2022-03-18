@@ -42,6 +42,7 @@
 
 from django.db.models.sql.aggregates import Aggregate
 
+
 class _Aggregate(Aggregate):
 
     def __init__(self, lookup, **extra):
@@ -56,6 +57,7 @@ class _Aggregate(Aggregate):
         super(_Aggregate, self).__init__(col, source, is_summary, **self.extra)
         query.aggregates[alias] = self
 
+
 class StdDev(_Aggregate):
     name = 'StdDev'
     is_computed = True
@@ -64,6 +66,7 @@ class StdDev(_Aggregate):
         super(StdDev, self).__init__(col, **extra)
         self.sql_function = sample and 'STDEV' or 'STDEVP'
 
+
 class Variance(_Aggregate):
     name = 'Variance'
     is_computed = True
@@ -71,6 +74,7 @@ class Variance(_Aggregate):
     def __init__(self, col, sample=False, **extra):
         super(Variance, self).__init__(col, **extra)
         self.sql_function = sample and 'VAR' or 'VARP'
+
 
 class Avg(_Aggregate):
     name = 'Avg'

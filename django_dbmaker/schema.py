@@ -5,37 +5,13 @@ from django.db.backends.ddl_references import (
 from django.db.backends.utils import split_identifier
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import NOT_PROVIDED
+from django.db.backends.base.schema import _is_relevant_relation
+from django.db.backends.base.schema import _all_related_fields
+from django.db.backends.base.schema import _related_non_m2m_objects
 
-def _is_relevant_relation(relation, altered_field):
-    """
-    When altering the given field, must constraints on its model from the given
-    relation be temporarily dropped?
-    """
-    field = relation.field
-    if field.many_to_many:
-        # M2M reverse field
-        return False
-    if altered_field.primary_key and field.to_fields == [None]:
-        # Foreign key constraint on the primary key, which is being altered.
-        return True
-    # Is the constraint targeting the field being altered?
-    return altered_field.name in field.to_fields
-
-
-def _all_related_fields(model):
-    return model._meta._get_fields(forward=False, reverse=True, include_hidden=True)
-
-
-def _related_non_m2m_objects(old_field, new_field):
-    # Filter out m2m objects from reverse relations.
-    # Return (old_relation, new_relation) tuples.
-    return zip(
-        (obj for obj in _all_related_fields(old_field.model) if _is_relevant_relation(obj, old_field)),
-        (obj for obj in _all_related_fields(new_field.model) if _is_relevant_relation(obj, new_field)),
-    )
 
 class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
-    
+
     sql_retablespace_table = "ALTER TABLE %(table)s MOVE TABLESPACE %(new_tablespace)s"
     sql_alter_column_type = "MODIFY COLUMN %(column)s TYPE TO %(type)s"
     sql_alter_column_null = "MODIFY COLUMN %(column)s NOT NULL TO NULL"
@@ -49,7 +25,6 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
 
     sql_delete_unique = "DROP INDEX %(name)s from %(table)s"
 
-   
     sql_create_inline_fk = None
     sql_delete_fk = "ALTER TABLE %(table)s DROP FOREIGN KEY %(name)s"
     sql_delete_pk = "ALTER TABLE %(table)s DROP PRIMARY KEY"
@@ -60,14 +35,14 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         "REFERENCES %(to_table)s (%(to_column)s) %(on_update)s %(deferrable)s"
     )
     sql_create_pk = "ALTER TABLE %(table)s ADD PRIMARY KEY (%(columns)s)"
-    
+
     def _is_limited_data_type(self, field):
         db_type = field.db_type(self.connection)
         return db_type is not None and db_type.lower() in self.connection._limited_data_types
 
     def skip_default(self, field):
         return self._is_limited_data_type(field)
-    
+
     def add_field(self, model, field):
         """
         Create a field on a model. Usually involves adding a column, but may
@@ -77,22 +52,24 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         if field.many_to_many and field.remote_field.through._meta.auto_created:
             return self.create_model(field.remote_field.through)
         # Get the column's definition
-                    
-        definition, params = self.column_sql(model, field, include_default=True)
+
+        definition, params = self.column_sql(
+            model, field, include_default=True)
         # It might not actually have a column behind it
         if definition is None:
             return
-        #dbmaker don't support unique in add column
+        # dbmaker don't support unique in add column
         if 'UNIQUE' in definition:
             definition = definition.replace('UNIQUE', '')
-            self.deferred_sql.append(self._create_unique_sql(model, [field.column]))
-             
+            self.deferred_sql.append(
+                self._create_unique_sql(model, [field.column]))
+
         # Check constraints can go on the column SQL here
         db_params = field.db_parameters(connection=self.connection)
         if db_params['check']:
             definition += " " + self.sql_check_constraint % db_params
-        
-        #dbmaker need add give val in default val not null       
+
+        # dbmaker need add give val in default val not null
         default_val = self.effective_default(field)
         needs_give = (
             not field.null and
@@ -103,7 +80,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         if needs_give:
             default = self.prepare_default(default_val)
             definition += " give " + default
-            
+
         # Build the SQL and run it
         sql = self.sql_create_column % {
             "table": self.quote_name(model._meta.db_table),
@@ -114,7 +91,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         # Drop the default if we need to
         # (Django usually does not use in-database defaults)
         if not self.skip_default(field) and self.effective_default(field) is not None:
-            changes_sql, params = self._alter_column_default_sql(model, None, field, drop=True)
+            changes_sql, params = self._alter_column_default_sql(
+                model, None, field, drop=True)
             sql = self.sql_alter_column % {
                 "table": self.quote_name(model._meta.db_table),
                 "changes": changes_sql,
@@ -124,7 +102,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         self.deferred_sql.extend(self._field_indexes_sql(model, field))
         # Add any FK constraints later
         if field.remote_field and self.connection.features.supports_foreign_keys and field.db_constraint:
-            self.deferred_sql.append(self._create_fk_sql(model, field, "_fk_%(to_table)s_%(to_column)s"))
+            self.deferred_sql.append(
+                self._create_fk_sql(model, field, "_fk_%(to_table)s_%(to_column)s"))
         # Reset connection if required
         if self.connection.features.connection_persists_old_columns:
             self.connection.close()
@@ -143,8 +122,10 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             create_fk_name,
         )
         column = Columns(model._meta.db_table, [field.column], self.quote_name)
-        to_table = Table(field.target_field.model._meta.db_table, self.quote_name)
-        to_column = Columns(field.target_field.model._meta.db_table, [field.target_field.column], self.quote_name)
+        to_table = Table(
+            field.target_field.model._meta.db_table, self.quote_name)
+        to_column = Columns(field.target_field.model._meta.db_table, [
+                            field.target_field.column], self.quote_name)
         deferrable = self.connection.ops.deferrable_sql()
         table_name = model._meta.db_table
         to_table_name = field.target_field.model._meta.db_table
@@ -158,7 +139,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 to_column=to_column,
                 on_update="",
                 deferrable=deferrable,
-            )    
+            )
         else:
             return Statement(
                 self.sql_create_fk,
@@ -169,16 +150,16 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 to_column=to_column,
                 on_update="ON UPDATE CASCADE",
                 deferrable=deferrable,
-            
+
             )
-        
+
     def quote_value(self, value):
         if isinstance(value, (datetime.date, datetime.time, datetime.datetime)):
             return "'%s'" % value
-        elif isinstance(value, str):          
-            return "'%s'" %  value.replace("\'", "\'\'")
+        elif isinstance(value, str):
+            return "'%s'" % value.replace("\'", "\'\'")
         elif isinstance(value, (bytes, bytearray, memoryview)):
-            return  "X'%s'" % value.hex()
+            return "X'%s'" % value.hex()
         elif isinstance(value, bool):
             return "1" if value else "0"
         elif value is None:
@@ -209,15 +190,16 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     # Some databases can't take defaults as a parameter (oracle)
                     # If this is the case, the individual schema backend should
                     # implement prepare_default
-                    #dbmaker nclob replace default_val to ''
-                    if field.get_internal_type() == 'TextField' and len(default_value)>31:
+                    # dbmaker nclob replace default_val to ''
+                    if field.get_internal_type() == 'TextField' and len(default_value) > 31:
                         sql += " DEFAULT \'\'"
                     else:
-                        sql += " DEFAULT %s" % self.prepare_default(default_value)
+                        sql += " DEFAULT %s" % self.prepare_default(
+                            default_value)
                 else:
                     sql += " DEFAULT %s"
                     params += [default_value]
-        
+
         if (field.empty_strings_allowed and not field.primary_key and
                 self.connection.features.interprets_empty_strings_as_nulls):
             null = True
@@ -233,10 +215,11 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         # Optionally add the tablespace if it's an implicitly indexed column
         tablespace = field.db_tablespace or model._meta.db_tablespace
         if tablespace and self.connection.features.supports_tablespaces and field.unique:
-            sql += " %s" % self.connection.ops.tablespace_sql(tablespace, inline=True)
+            sql += " %s" % self.connection.ops.tablespace_sql(
+                tablespace, inline=True)
         # Return the sql
-        return sql, params   
-   
+        return sql, params
+
     def _alter_column_type_sql(self, table, old_field, new_field, new_type):
         return super(DatabaseSchemaEditor, self)._alter_column_type_sql(table, old_field, new_field, new_type)
 
@@ -250,7 +233,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             old_field.remote_field and
             old_field.db_constraint
         ):
-            fk_names = self._constraint_names(model, [old_field.column], foreign_key=True)
+            fk_names = self._constraint_names(
+                model, [old_field.column], foreign_key=True)
             if strict and len(fk_names) != 1:
                 raise ValueError("Found wrong number (%s) of foreign key constraints for %s.%s" % (
                     len(fk_names),
@@ -263,7 +247,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         # Has unique been removed?
         if old_field.unique and (not new_field.unique or self._field_became_primary_key(old_field, new_field)):
             # Find the unique constraint for this field
-            meta_constraint_names = {constraint.name for constraint in model._meta.constraints}
+            meta_constraint_names = {
+                constraint.name for constraint in model._meta.constraints}
             constraint_names = self._constraint_names(
                 model, [old_field.column], unique=True, primary_key=False,
                 exclude=meta_constraint_names,
@@ -289,10 +274,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             # will be filtered out
             for _old_rel, new_rel in _related_non_m2m_objects(old_field, new_field):
                 rel_fk_names = self._constraint_names(
-                    new_rel.related_model, [new_rel.field.column], foreign_key=True
+                    new_rel.related_model, [
+                        new_rel.field.column], foreign_key=True
                 )
                 for fk_name in rel_fk_names:
-                    self.execute(self._delete_fk_sql(new_rel.related_model, fk_name))
+                    self.execute(
+                        self._delete_fk_sql(new_rel.related_model, fk_name))
         # Removed an index? (no strict check, as multiple indexes are possible)
         # Remove indexes if db_index switched to False or a unique constraint
         # will now be used in lieu of an index. The following lines from the
@@ -317,16 +304,18 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 # db_index=True or with Index(['field'], name='foo')
                 # is to look at its name (refs #28053).
                 self.execute(self._delete_index_sql(model, index_name))
-        #DBMaker only support alter column drop constraint
-        if old_db_params['check'] != new_db_params['check'] and old_db_params['check']:       
+        # DBMaker only support alter column drop constraint
+        if old_db_params['check'] != new_db_params['check'] and old_db_params['check']:
             self.execute(self._delete_check_sql(model, old_field.column))
         # Have they renamed the column?
         if old_field.column != new_field.column:
-            self.execute(self._rename_field_sql(model._meta.db_table, old_field, new_field, new_type))
+            self.execute(self._rename_field_sql(
+                model._meta.db_table, old_field, new_field, new_type))
             # Rename all references to the renamed column.
             for sql in self.deferred_sql:
                 if isinstance(sql, Statement):
-                    sql.rename_column_references(model._meta.db_table, old_field.column, new_field.column)
+                    sql.rename_column_references(
+                        model._meta.db_table, old_field.column, new_field.column)
         # Next, start accumulating actions to do
         actions = []
         null_actions = []
@@ -336,11 +325,13 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         new_collation = getattr(new_field, 'db_collation', None)
         if old_collation != new_collation:
             # Collation change handles also a type change.
-            fragment = self._alter_column_collation_sql(model, new_field, new_type, new_collation)
+            fragment = self._alter_column_collation_sql(
+                model, new_field, new_type, new_collation)
             actions.append(fragment)
         # Type change?
         elif old_type != new_type:
-            fragment, other_actions = self._alter_column_type_sql(model, old_field, new_field, new_type)
+            fragment, other_actions = self._alter_column_type_sql(
+                model, old_field, new_field, new_type)
             actions.append(fragment)
             post_actions.extend(other_actions)
         # When changing a column NULL constraint to NOT NULL with a given
@@ -360,7 +351,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 new_default is not None
             ):
                 needs_database_default = True
-                actions.append(self._alter_column_default_sql(model, old_field, new_field))
+                actions.append(
+                    self._alter_column_default_sql(model, old_field, new_field))
         # Nullability change?
         if old_field.null != new_field.null:
             fragment = self._alter_column_null_sql(model, old_field, new_field)
@@ -433,16 +425,20 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         # referring to us.
         rels_to_update = []
         if drop_foreign_keys:
-            rels_to_update.extend(_related_non_m2m_objects(old_field, new_field))
+            rels_to_update.extend(
+                _related_non_m2m_objects(old_field, new_field))
         # Changed to become primary key?
         if self._field_became_primary_key(old_field, new_field):
             # Make the new one
             self.execute(self._create_primary_key_sql(model, new_field))
             # Update all referencing columns
-            rels_to_update.extend(_related_non_m2m_objects(old_field, new_field))
-        # Handle our type alters on the other end of rels from the PK stuff above
+            rels_to_update.extend(
+                _related_non_m2m_objects(old_field, new_field))
+        # Handle our type alters on the other end of rels from the PK stuff
+        # above
         for old_rel, new_rel in rels_to_update:
-            rel_db_params = new_rel.field.db_parameters(connection=self.connection)
+            rel_db_params = new_rel.field.db_parameters(
+                connection=self.connection)
             rel_type = rel_db_params['type']
             fragment, other_actions = self._alter_column_type_sql(
                 new_rel.related_model, old_rel.field, new_rel.field, rel_type
@@ -460,19 +456,23 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         if (self.connection.features.supports_foreign_keys and new_field.remote_field and
                 (fks_dropped or not old_field.remote_field or not old_field.db_constraint) and
                 new_field.db_constraint):
-            self.execute(self._create_fk_sql(model, new_field, "_fk_%(to_table)s_%(to_column)s"))
+            self.execute(
+                self._create_fk_sql(model, new_field, "_fk_%(to_table)s_%(to_column)s"))
         # Rebuild FKs that pointed to us if we previously had to drop them
         if drop_foreign_keys:
             for rel in new_field.model._meta.related_objects:
                 if _is_relevant_relation(rel, new_field) and rel.field.db_constraint:
-                    self.execute(self._create_fk_sql(rel.related_model, rel.field, "_fk"))
-        #DBMaker only support alter column constraint to 
+                    self.execute(
+                        self._create_fk_sql(rel.related_model, rel.field, "_fk"))
+        # DBMaker only support alter column constraint to
         if old_db_params['check'] != new_db_params['check'] and new_db_params['check']:
-            self.execute(self._create_check_sql(model, new_field.column, new_db_params['check']))
+            self.execute(
+                self._create_check_sql(model, new_field.column, new_db_params['check']))
         # Drop the default if we need to
         # (Django usually does not use in-database defaults)
         if needs_database_default:
-            changes_sql, params = self._alter_column_default_sql(model, old_field, new_field, drop=True)
+            changes_sql, params = self._alter_column_default_sql(
+                model, old_field, new_field, drop=True)
             sql = self.sql_alter_column % {
                 "table": self.quote_name(model._meta.db_table),
                 "changes": changes_sql,
@@ -481,10 +481,10 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         # Reset connection if required
         if self.connection.features.connection_persists_old_columns:
             self.connection.close()
-        
+
     def prepare_default(self, value):
         return self.quote_value(value)
-    
+
     def _rename_field_sql(self, table, old_field, new_field, new_type):
-#        new_type = self._set_field_new_type_null_status(old_field, new_type)
+        #        new_type = self._set_field_new_type_null_status(old_field, new_type)
         return super(DatabaseSchemaEditor, self)._rename_field_sql(table, old_field, new_field, new_type)

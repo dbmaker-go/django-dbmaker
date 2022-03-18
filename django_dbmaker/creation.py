@@ -43,6 +43,7 @@ import subprocess
 import os
 from django.db.backends.base.creation import BaseDatabaseCreation
 
+
 class DatabaseCreation(BaseDatabaseCreation):
     # This dictionary maps Field objects to their associated MS SQL column
     # types, as strings. Column-type strings can contain format strings; they'll
@@ -52,10 +53,9 @@ class DatabaseCreation(BaseDatabaseCreation):
     # Any format strings starting with "qn_" are quoted before being used in the
     # output (the "qn_" prefix is stripped before the lookup is performed.
 
-    
     # For these columns, DBMaker doesn't:
     # - accept default values and implicitly treats these columns as nullable
-    
+
     def _create_test_db(self, verbosity=1, autoclobber=False, keepdb=False):
         settings_dict = self.connection.settings_dict
 
@@ -89,15 +89,15 @@ class DatabaseCreation(BaseDatabaseCreation):
             qn = self.connection.ops.quote_name
             sql = "SELECT distinct trim(FK_TBL_NAME), trim(PK_TBL_NAME) FROM SYSFOREIGNKEY" 
             cursor.execute("CALL SETSYSTEMOPTION(\'FKCHK\', \'0\')")
-            
+
             for row in cursor.execute(sql).fetchall():
                 cursor.execute("DROP TABLE %s" % row[0])
                 cursor.execute("DROP TABLE %s" % row[1])
-           
+
             cursor.execute('CALL SETSYSTEMOPTION(\'FKCHK\', \'1\')')
             self.connection.connection.commit()
             '''
-            
+
             return test_name
 
         return super(DatabaseCreation, self)._create_test_db(verbosity, autoclobber)
@@ -114,6 +114,7 @@ class DatabaseCreation(BaseDatabaseCreation):
             sys.exit(2)    
         
     """
+
     def _destroy_test_db(self, test_database_name, verbosity):
         "Internal implementation - remove the test db tables."
         if test_database_name:
@@ -137,24 +138,30 @@ class DatabaseCreation(BaseDatabaseCreation):
                 try:
                     if verbosity >= 1:
                         self.log('Destroying old test database for alias %s...' % (
-                            self._get_database_display_str(verbosity, target_database_name),
+                            self._get_database_display_str(
+                                verbosity, target_database_name),
                         ))
                     self._destroy_test_db(test_db_params)
-                    self._execute_create_test_db(cursor, test_db_params, keepdb)
+                    self._execute_create_test_db(
+                        cursor, test_db_params, keepdb)
                 except Exception as e:
-                    self.log('Got an error recreating the test database: %s' % e)
+                    self.log(
+                        'Got an error recreating the test database: %s' % e)
                     sys.exit(2)
         self._clone_db(source_database_name, target_database_name)
 
     def _clone_db(self, source_database_name, target_database_name):
-        dump_args = DatabaseClient.settings_to_cmd_args(self.connection.settings_dict)[1:]
+        dump_args = DatabaseClient.settings_to_cmd_args(
+            self.connection.settings_dict)[1:]
         dump_args[-1] = source_database_name
         dump_cmd = ['mysqldump', '--routines', '--events'] + dump_args
-        load_cmd = DatabaseClient.settings_to_cmd_args(self.connection.settings_dict)
+        load_cmd = DatabaseClient.settings_to_cmd_args(
+            self.connection.settings_dict)
         load_cmd[-1] = target_database_name
 
         with subprocess.Popen(dump_cmd, stdout=subprocess.PIPE) as dump_proc:
             with subprocess.Popen(load_cmd, stdin=dump_proc.stdout, stdout=subprocess.DEVNULL):
-                # Allow dump_proc to receive a SIGPIPE if the load process exits.
+                # Allow dump_proc to receive a SIGPIPE if the load process
+                # exits.
                 dump_proc.stdout.close()
-            
+

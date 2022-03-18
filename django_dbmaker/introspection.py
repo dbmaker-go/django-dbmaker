@@ -50,7 +50,9 @@ from django.db.backends.base.introspection import (
 
 from django.utils.datastructures import OrderedSet
 
-FieldInfo = namedtuple('FieldInfo', BaseFieldInfo._fields + ('is_autofield', 'is_json'))
+FieldInfo = namedtuple(
+    'FieldInfo', BaseFieldInfo._fields + ('is_autofield', 'is_json'))
+
 
 class DatabaseIntrospection(BaseDatabaseIntrospection):
     # Map type codes to Django Field types.
@@ -62,10 +64,10 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         Database.SQL_DECIMAL:           'DecimalField',
         Database.SQL_DOUBLE:            'FloatField',
         Database.SQL_FLOAT:             'FloatField',
-#        Database.SQL_GUID:              'TextField',
+        # Database.SQL_GUID:              'TextField',
         Database.SQL_INTEGER:           'IntegerField',
         Database.SQL_LONGVARBINARY:     'BinaryField',
-        #Database.SQL_LONGVARCHAR:       ,
+        # Database.SQL_LONGVARCHAR:       ,
         Database.SQL_NUMERIC:           'DecimalField',
         Database.SQL_REAL:              'FloatField',
         Database.SQL_SMALLINT:          'SmallIntegerField',
@@ -90,12 +92,13 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         if description.is_json:
             return 'JSONField'
         return field_type
-    
+
     def get_table_list(self, cursor):
         """
         Returns a list of table names in the current database.
         """
-        cursor.execute("SELECT trim(TABLE_NAME), trim(TABLE_TYPE) FROM INFORMATION_SCHEMA.TABLES")
+        cursor.execute(
+            "SELECT trim(TABLE_NAME), trim(TABLE_TYPE) FROM INFORMATION_SCHEMA.TABLES")
         types = {'TABLE': 't', 'VIEW': 'v'}
         return [TableInfo(self.identifier_converter(row[0]), types.get(row[1])) for row in cursor.fetchall()]
 
@@ -135,37 +138,41 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             for column, collation, is_autofield, is_json in cursor.fetchall()
         }
         # map pyodbc's cursor.columns to db-api cursor description
-        columns = [[c[3], c[4], None, c[6], c[6], c[8], c[10], c[12]] for c in cursor.columns(table=table_name)]
+        columns = [[c[3], c[4], None, c[6], c[6], c[8], c[10], c[12]]
+                   for c in cursor.columns(table=table_name)]
         items = []
         for column in columns:
-            name = column[0]            
+            name = column[0]
             column[0] = self.identifier_converter(column[0])
-            collation, is_autofield, is_json = field_map[name]  
+            collation, is_autofield, is_json = field_map[name]
             items.append(FieldInfo(*column, collation, is_autofield, is_json))
-            
-        return items  
-    
+
+        return items
+
     def identifier_converter(self, name):
         """Identifier comparison is case insensitive under Oracle."""
         return name.lower()
-    
-    def colname(self, cursor, table_name): 
-        colnames = [self.identifier_converter(c[3]) for c in cursor.columns(table=table_name)]
+
+    def colname(self, cursor, table_name):
+        colnames = [self.identifier_converter(
+            c[3]) for c in cursor.columns(table=table_name)]
         return colnames
-                
+
     def _bytes_to_list(self, bytes):
-        
-        #based 0
-        item = []  
+
+        # based 0
+        item = []
         i = 0
-        columnid = int.from_bytes(bytes[i*2:(i+1)*2], byteorder='little', signed=False)-1;
+        columnid = int.from_bytes(
+            bytes[i * 2:(i + 1) * 2], byteorder='little', signed=False) - 1
         while (columnid >= 0):
             i += 1
             item.append(columnid)
-            #base 0, so actual column_order-1 will be the index of column_name
-            columnid= int.from_bytes(bytes[i*2:(i+1)*2], byteorder='little', signed=False)-1
+            # base 0, so actual column_order-1 will be the index of column_name
+            columnid = int.from_bytes(
+                bytes[i * 2:(i + 1) * 2], byteorder='little', signed=False) - 1
         return item
-          
+
     def get_relations(self, cursor, table_name):
         """
         Return a dictionary of {field_name: (field_name_other_table, other_table)}
@@ -176,16 +183,6 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         for my_fieldname, other_table, other_field in constraints:
             relations[my_fieldname] = (other_field, other_table)
         return relations
-
-    #def get_collations_list(self, cursor):
-    #    """
-    #    Returns list of available collations and theirs descriptions.
-    #    """
-    #    # http://msdn2.microsoft.com/en-us/library/ms184391.aspx
-    #    # http://msdn2.microsoft.com/en-us/library/ms179886.aspx
-    #
-    #    cursor.execute("SELECT name, description FROM ::fn_helpcollations()")
-    #    return [tuple(row) for row in cursor.fetchall()]
 
     def get_key_columns(self, cursor, table_name):
         """
@@ -207,23 +204,25 @@ WHERE FK_TBL_NAME = Upper(%s) """
             pkcolIndex = self._bytes_to_list(pk_col_order)
             fkcolIndex = self._bytes_to_list(fk_col_order)
             i = 0
-            while (i<len(pkcolIndex)):
-                foreignKeys.append((self.colname(cursor, table_name)[fkcolIndex[i]], self.identifier_converter(referenced_table_name), self.colname(cursor, referenced_table_name)[pkcolIndex[i]]))
+            while (i < len(pkcolIndex)):
+                foreignKeys.append((self.colname(cursor, table_name)[fkcolIndex[i]], self.identifier_converter(
+                    referenced_table_name), self.colname(cursor, referenced_table_name)[pkcolIndex[i]]))
                 i += 1
-            
-        return foreignKeys;
+
+        return foreignKeys
 
     def get_sequences(self, cursor, table_name, table_fields=()):
         for f in table_fields:
             if isinstance(f, models.AutoField):
                 return [{'table': table_name, 'column': f.column}]
         return []
-    
+
     def _parse_column_constraint(self, sql, columns):
         statement = sqlparse.parse(sql)[0]
-        tokens = (token for token in statement.flatten() if not token.is_whitespace)
+        tokens = (
+            token for token in statement.flatten() if not token.is_whitespace)
         braces_deep = 0
-        check_columns=[]
+        check_columns = []
         for token in tokens:
             if token.match(sqlparse.tokens.Punctuation, '('):
                 braces_deep += 1
@@ -235,16 +234,16 @@ WHERE FK_TBL_NAME = Upper(%s) """
             elif braces_deep == 0 and token.match(sqlparse.tokens.Punctuation, ','):
                 # End of current column or constraint definition.
                 break
-            
+
             if token.ttype in (sqlparse.tokens.Name, sqlparse.tokens.Keyword):
                 if token.value in columns:
                     check_columns.append(token.value)
             elif token.ttype == sqlparse.tokens.Literal.String.Symbol:
                 if token.value[1:-1] in columns:
                     check_columns.append(token.value[1:-1])
-        
+
         return check_columns
-            
+
     def get_constraints(self, cursor, table_name):
         """
         Retrieve any constraints or keys (unique, pk, fk, check, index)
@@ -283,9 +282,11 @@ WHERE FK_TBL_NAME = Upper(%s) """
             fkcollist = []
             pkcollist = []
             i = 0
-            while (i<len(fkcolIndex)):
-                fkcollist.append(self.colname(cursor, table_name)[fkcolIndex[i]])
-                pkcollist.append(self.colname(cursor, table_name)[pkcolIndex[i]])
+            while (i < len(fkcolIndex)):
+                fkcollist.append(
+                    self.colname(cursor, table_name)[fkcolIndex[i]])
+                pkcollist.append(
+                    self.colname(cursor, table_name)[pkcolIndex[i]])
                 i += 1
             constraints[constraint] = {
                 'columns': fkcollist,
@@ -294,8 +295,8 @@ WHERE FK_TBL_NAME = Upper(%s) """
                 'index': False,
                 'check': False,
                 'foreign_key': (self.identifier_converter(pk_tbl_name), pkcollist),
-                }
-    
+            }
+
         #indexes (primary, unique, index)
         cursor.execute("call SHOWINDEX('sysadm', '%s')" % table_name)
         for table, non_unique, index, type_, colseq, column, asc_or_desc in [x[1:8] for x in cursor.fetchall()]:
@@ -303,28 +304,30 @@ WHERE FK_TBL_NAME = Upper(%s) """
             if index not in constraints:
                 constraints[index] = {
                     'columns': OrderedSet(),
-                    'primary_key': True if index=='primarykey' else False,
-                    'unique': True if non_unique==0 else False,
+                    'primary_key': True if index == 'primarykey' else False,
+                    'unique': True if non_unique == 0 else False,
                     'order': 'ASC' if asc_or_desc == 'A' else 'DESC',
-                    'index': True if index != 'primarykey' else False, 
+                    'index': True if index != 'primarykey' else False,
                 }
-            constraints[index]['columns'].add(self.identifier_converter(column))    
+            constraints[index]['columns'].add(
+                self.identifier_converter(column))
             constraints[index]['type'] = 'BTREE'
             constraints[index]['check'] = False
             constraints[index]['foreign_key'] = None
-        
-        #column constraint
+
+        # column constraint
         query = """
             SELECT constr, column_name
             FROM system.syscolumn
             WHERE table_name = upper(%s) AND BLOBLEN(CONSTR)>0
         """
         cursor.execute(query, [table_name])
-        
+
         unnamed_constrains_index = 0
         for sql, column in cursor.fetchall():
-            sql = sql.replace('value', self.identifier_converter(column)) 
-            check_columns = self._parse_column_constraint(sql, self.colname(cursor, table_name));
+            sql = sql.replace('value', self.identifier_converter(column))
+            check_columns = self._parse_column_constraint(
+                sql, self.colname(cursor, table_name))
             unnamed_constrains_index += 1
             constraints['__unnamed_constraint_%s__' % unnamed_constrains_index] = {
                 'check': True,
@@ -334,18 +337,19 @@ WHERE FK_TBL_NAME = Upper(%s) """
                 'foreign_key': None,
                 'index': False,
             } if check_columns else None
-            
-        #table constraint
+
+        # table constraint
         query = """
             SELECT constr
             FROM system.systable
             WHERE table_name = upper(%s) AND BLOBLEN(CONSTR)>0
         """
         cursor.execute(query, [table_name])
-        
-        #table constraint
+
+        # table constraint
         for sql in cursor.fetchall():
-            check_columns = self._parse_column_constraint(sql[0], self.colname(cursor, table_name));
+            check_columns = self._parse_column_constraint(
+                sql[0], self.colname(cursor, table_name))
             unnamed_constrains_index += 1
             constraints['__unnamed_constraint_%s__' % unnamed_constrains_index] = {
                 'check': True,
@@ -354,8 +358,8 @@ WHERE FK_TBL_NAME = Upper(%s) """
                 'unique': False,
                 'foreign_key': None,
                 'index': False,
-            } if check_columns else None   
-        
+            } if check_columns else None
+
         for constraint in constraints.values():
             constraint['columns'] = list(constraint['columns'])
         return constraints

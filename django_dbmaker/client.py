@@ -41,12 +41,13 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from django.db.backends.base.client import BaseDatabaseClient
 
+
 class DatabaseClient(BaseDatabaseClient):
     executable_name = 'dmsql32'
-    
+
     @classmethod
     def settings_to_cmd_args_env(cls, settings_dict, parameters):
-         args = [cls.executable_name]
-         args.extend(parameters)
-         return args, None
+        args = [cls.executable_name]
+        args.extend(parameters)
+        return args, None
 

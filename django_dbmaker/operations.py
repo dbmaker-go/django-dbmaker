@@ -66,17 +66,19 @@ from django.db.models.sql.where import WhereNode
 from django.utils import timezone
 from django.utils.duration import duration_microseconds
 
+
 class DatabaseOperations(BaseDatabaseOperations):
     compiler_module = "django_dbmaker.compiler"
-        
+
     cast_char_field_without_max_length = 'VARCHAR(256)'
     cast_data_types = {
         'AutoField': 'INT',
         'BigAutoField': 'BIGINT',
         'TextField': cast_char_field_without_max_length,
     }
+
     def __init__(self, connection):
-        super(DatabaseOperations, self).__init__(connection) 
+        super(DatabaseOperations, self).__init__(connection)
         self.connection = connection
         self._left_sql_quote = None
         self._right_sql_quote = None
@@ -99,10 +101,10 @@ class DatabaseOperations(BaseDatabaseOperations):
             q = options.get('right_sql_quote', None)
             if q is not None:
                 self._right_sql_quote = q
-            else:           
+            else:
                 self._right_sql_quote = '"'
         return self._right_sql_quote
-        
+
     def conditional_expression_supported_in_where_clause(self, expression):
         if isinstance(expression, (Exists, WhereNode)):
             return True
@@ -111,7 +113,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         if isinstance(expression, RawSQL) and expression.conditional:
             return True
         return False
-    
+
     def combine_expression(self, connector, sub_expressions):
         """
         DBMaker requires special cases for some operators in query expressions
@@ -132,7 +134,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif connector == '#':
             return 'BXOR(%s)' % ','.join(sub_expressions)
         return super().combine_expression(connector, sub_expressions)
-    
+
     def combine_duration_expression(self, connector, sub_expressions):
         lhs, rhs = sub_expressions
         sign = ' * -1' if connector == '-' else ''
@@ -169,7 +171,7 @@ class DatabaseOperations(BaseDatabaseOperations):
             return "MINUTE(%s)" % field_name
         else:
             return "SECOND(%s)" % field_name
-    
+
     def date_interval_sql(self, timedelta):
         """
         implements the interval functionality for expressions
@@ -177,34 +179,37 @@ class DatabaseOperations(BaseDatabaseOperations):
         sec = timedelta.seconds + timedelta.days * 86400
         sql = 'TIMESTAMPADD(\'s\', %d%%s, %%s)' % sec
         if timedelta.microseconds:
-            sql = 'TIMESTAMPADD(\'f\', %d%%s, %s)' % (timedelta.microseconds, sql)
+            sql = 'TIMESTAMPADD(\'f\', %d%%s, %s)' % (
+                timedelta.microseconds, sql)
         return sql
-     
+
     def date_trunc_sql(self, lookup_type, field_name, tzname=None):
-        if lookup_type =='year':
+        if lookup_type == 'year':
             return "TO_DATE(STRDATE(%s,'start of year'), 'yyyy-mm-dd')" % field_name
         if lookup_type == 'month':
             return "TO_DATE(STRDATE(%s, 'start of month'), 'yyyy-mm-dd')" % field_name
         elif lookup_type == 'quarter':
-            return "MDY((QUARTER(%s)-1)*3+1, 1, YEAR(%s))" % (field_name , field_name)
+            return "MDY((QUARTER(%s)-1)*3+1, 1, YEAR(%s))" % (field_name, field_name)
         elif lookup_type == 'week':
             return "TO_DATE(STRDATE(%s, 'start of week'), 'yyyy-mm-dd')" % field_name
         else:
             return field_name
-        #return "DATEADD(%s, DATEDIFF(%s, 0, %s), 0)" % (lookup_type, lookup_type, field_name)
+        # return "DATEADD(%s, DATEDIFF(%s, 0, %s), 0)" % (lookup_type,
+        # lookup_type, field_name)
 
     def format_for_duration_arithmetic(self, sql):
         if sql == '%s':
-            # use DATEADD only once because Django prepares only one parameter for this 
+            # use DATEADD only once because Django prepares only one parameter
+            # for this
             fmt = 'TIMESTAMPADD(\'s\', %s / 1000000%%s, %%s)'
             sql = '%%s'
         else:
             # use DATEADD twice to avoid arithmetic overflow for number part
             fmt = 'TIMESTAMPADD(\'s\', %s / 1000000%%s, %%s)'
             #fmt = 'TIMESTAMPADD(\'s\', %s / 1000000%%s, TIMESTAMPADD(\'f\', %s %%%%%%%% 1000000%%s, %%s))'
-            sql = (sql)  
+            sql = (sql)
         return fmt % sql
-    
+
     def _convert_field_to_tz(self, field_name, tzname):
         if settings.USE_TZ and not tzname == 'UTC':
             offset = self._get_utcoffset(tzname)
@@ -224,15 +229,15 @@ class DatabaseOperations(BaseDatabaseOperations):
     def datetime_extract_sql(self, lookup_type, field_name, tzname):
         field_name = self._convert_field_to_tz(field_name, tzname)
         return self.date_extract_sql(lookup_type, field_name)
-    
+
     def datetime_cast_date_sql(self, field_name, tzname):
         field_name = self._convert_field_to_tz(field_name, tzname)
         return 'DATEPART(%s)' % field_name
-    
+
     def datetime_cast_time_sql(self, field_name, tzname):
         field_name = self._convert_field_to_tz(field_name, tzname)
         return "CAST(%s AS TIME)" % field_name
-    
+
     def datetime_trunc_sql(self, lookup_type, field_name, tzname):
         field_name = self._convert_field_to_tz(field_name, tzname)
         fields = ['year', 'month', 'day', 'hour', 'minute', 'week']
@@ -247,17 +252,18 @@ class DatabaseOperations(BaseDatabaseOperations):
         except ValueError:
             sql = field_name
         else:
-            sql = "CAST(STRDATETIME(%s, 'start of %s') AS TIMESTAMP)" % (field_name, fields[i])
+            sql = "CAST(STRDATETIME(%s, 'start of %s') AS TIMESTAMP)" % (
+                field_name, fields[i])
         return sql
 
-    def time_trunc_sql(self, lookup_type, field_name, tzname=None):  
+    def time_trunc_sql(self, lookup_type, field_name, tzname=None):
         fields = ['hour', 'minute']
         if lookup_type in fields:
             format_str = fields[lookup_type]
             return "CAST(STRTIME(%s, 'start of %s') AS TIME)" % (field_name, format_str)
         else:
             return "CAST(STRTIME(%s) AS TIME)" % (field_name)
-    
+
     def lookup_cast(self, lookup_type, internal_type=None):
         lookup = '%s'
 
@@ -286,14 +292,14 @@ class DatabaseOperations(BaseDatabaseOperations):
         return '%s'
 
     def last_insert_id(self, cursor, table_name, pk_name):
-#         table_name = self.quote_name(table_name)
-#         cursor.execute("SELECT CAST(IDENT_CURRENT(%s) as bigint)", [table_name])
-#         return cursor.fetchone()[0]
+        #         table_name = self.quote_name(table_name)
+        #         cursor.execute("SELECT CAST(IDENT_CURRENT(%s) as bigint)", [table_name])
+        #         return cursor.fetchone()[0]
         table_name = self.quote_name(table_name)
         cursor.execute(" select LAST_SERIAL from SYSCONINFO")
 #         cursor.execute("SELECT cast(count(*) as bigint) from %s" % table_name)
         return cursor.fetchone()[0]
-     
+
     def fetch_returned_insert_id(self, cursor):
         """
         Given a cursor object that has just performed an INSERT/OUTPUT statement
@@ -311,7 +317,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         not quote the given name if it's already been quoted.
         """
         if name.startswith(self.left_sql_quote) and name.endswith(self.right_sql_quote):
-            return name # Quoting once is enough.
+            return name  # Quoting once is enough.
         return '%s%s%s' % (self.left_sql_quote, name, self.right_sql_quote)
 
     def random_function_sql(self):
@@ -338,10 +344,10 @@ class DatabaseOperations(BaseDatabaseOperations):
         return "VALUES " + values_sql
 
     def savepoint_commit_sql(self, sid):
-       """
-       Returns the SQL for committing the given savepoint.
-       """
-       return "REMOVE SAVEPOINT %s" % self.quote_name(sid)
+        """
+        Returns the SQL for committing the given savepoint.
+        """
+        return "REMOVE SAVEPOINT %s" % self.quote_name(sid)
 
     def sql_flush(self, style, tables, *, reset_sequences=False, allow_cascade=False):
         """
@@ -364,7 +370,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         else:
             return []
 
-    #def sequence_reset_sql(self, style, model_list):
+    # def sequence_reset_sql(self, style, model_list):
     #    """
     #    Returns a list of the SQL statements required to reset sequences for
     #    the given models.
@@ -407,8 +413,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         need not necessarily be implemented using "LIKE" in the backend.
         """
         return x
-    
-    def adapt_datetimefield_value(self, value):	
+
+    def adapt_datetimefield_value(self, value):
         """
         Transform a datetime value to an object compatible with what is expected
         by the backend driver for datetime columns.
@@ -418,11 +424,12 @@ class DatabaseOperations(BaseDatabaseOperations):
          # Expression values are adapted by the database.
         if hasattr(value, 'resolve_expression'):
             return value
-        
+
         if settings.USE_TZ and timezone.is_aware(value):
             # pyodbc donesn't support datetimeoffset
-            value = value.astimezone(self.connection.timezone).replace(tzinfo=None)
-        
+            value = value.astimezone(
+                self.connection.timezone).replace(tzinfo=None)
+
         return value
 
     def adapt_timefield_value(self, value):
@@ -432,19 +439,20 @@ class DatabaseOperations(BaseDatabaseOperations):
         """
         if value is None:
             return None
-        
+
         # Expression values are adapted by the database.
         if hasattr(value, 'resolve_expression'):
             return value
         if isinstance(value, str):
             return datetime.datetime(*(time.strptime(value, '%H:%M:%S')[:6]))
         if timezone.is_aware(value):
-            raise ValueError("DBMaker backend does not support timezone-aware times.")
+            raise ValueError(
+                "DBMaker backend does not support timezone-aware times.")
         return datetime.time(value.hour, value.minute, value.second)
 
     def adapt_decimalfield_value(self, value, max_digits=None, decimal_places=None):
         return value
-    
+
     def year_lookup_bounds(self, value):
         """
         Returns a two-elements list with the lower and upper bound to be used
@@ -455,12 +463,12 @@ class DatabaseOperations(BaseDatabaseOperations):
         first = '%s-01-01 00:00:00'
         last = '%s-12-31 23:59:59'
         return [first % value, last % value]
-   
+
     def get_db_converters(self, expression):
         converters = super().get_db_converters(expression)
-        internal_type = expression.output_field.get_internal_type()       
-        #if internal_type == 'IntegerField':
-            #converters.append(self.convert_intfield_value)
+        internal_type = expression.output_field.get_internal_type()
+        # if internal_type == 'IntegerField':
+        # converters.append(self.convert_intfield_value)
         if internal_type == 'FloatField':
             converters.append(self.convert_floatfield_value)
         elif internal_type == 'UUIDField':
@@ -468,7 +476,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif internal_type in ['BooleanField', 'NullBooleanField']:
             converters.append(self.convert_booleanfield_value)
         return converters
-    
+
     def convert_booleanfield_value(self, value, expression, connection):
         if value in (0, 1):
             value = bool(value)
@@ -478,7 +486,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         if value is not None:
             value = int(value)
         return value
-    
+
     def convert_floatfield_value(self, value, expression, connection):
         if value is not None:
             value = float(value)
@@ -488,6 +496,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         if value is not None:
             value = uuid.UUID(value)
         return value
-    
+
     def no_limit_value(self):
         return None

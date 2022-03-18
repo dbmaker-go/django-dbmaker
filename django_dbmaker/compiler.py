@@ -47,14 +47,17 @@ from django.db.models.functions import Random
 import django
 import types
 
+
 def _as_sql_agv(self, compiler, connection):
     return self.as_sql(compiler, connection,  template='%(function)s(CAST(%(field)s AS FLOAT))')
+
 
 def _as_sql_random(self, compiler, connection):
     return self.as_sql(compiler, connection, function='RAND')
 
-class SQLCompiler(compiler.SQLCompiler):  
-       
+
+class SQLCompiler(compiler.SQLCompiler):
+
     def compile(self, node):
         node = self._as_dbmaker(node)
         return super().compile(node)
@@ -70,14 +73,18 @@ class SQLCompiler(compiler.SQLCompiler):
             node.as_dbmaker = types.MethodType(as_dbmaker, node)
         return node
 
+
 class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
-   pass
+    pass
+
 
 class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):
     pass
 
+
 class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
     pass
+
 
 class SQLAggregateCompiler(compiler.SQLAggregateCompiler, SQLCompiler):
     pass
