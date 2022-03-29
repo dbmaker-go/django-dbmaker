@@ -169,7 +169,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'SmallIntegerField':            'smallint',
         'TextField':                    'nclob',
         'TimeField':                    'time',
-        'UUIDField':                    'char(32)',
+        'UUIDField':                    'varchar(36)',
     }
 
     data_type_check_constraints = {
