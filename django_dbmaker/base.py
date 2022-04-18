@@ -424,24 +424,7 @@ class CursorWrapper(object):
             params = self.format_params(params)
             self.last_params = params
             sql = sql.replace('%%', '%')
-        try:
-            return self.cursor.execute(sql, params)
-        except IntegrityError:
-            e = sys.exc_info()[1]
-            raise utils.IntegrityError(*e.args)
-        except DatabaseError:
-            logger = logging.getLogger('django.db.backends')
-            logger.setLevel(logging.ERROR)
-            handler = logging.FileHandler('mylog.log')
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-            logger.error('DEBUG SQL')
-            logger.error("----------------------------------------------------------------------------")
-            logger.error(sql)
-            logger.error(params)
-            e = sys.exc_info()[1]
-            raise utils.DatabaseError(*e.args)
+        return self.cursor.execute(sql, params)
         
     def executemany(self, sql, params_list):
         sql = self.format_sql(sql)
