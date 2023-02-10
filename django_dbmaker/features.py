@@ -42,6 +42,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_json_field = False
 #    case_whennot_not_supported = True
     supports_boolean_expr_in_select_clause = False
+    supports_combined_alters = False
 
     @cached_property
     def introspected_field_types(self):
