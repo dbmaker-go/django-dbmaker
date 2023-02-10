@@ -30,6 +30,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_ignore_conflicts = False
     allow_sliced_subqueries_with_in = False
     nulls_order_largest = True
+    supports_combined_alters = False
     #has_select_for_update = True
     #has_select_for_update_nowait = True
     #has_select_for_update_of = True
