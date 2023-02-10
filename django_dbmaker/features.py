@@ -41,6 +41,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     # Does the backend support NULLS FIRST and NULLS LAST in ORDER BY?
     supports_order_by_nulls_modifier = False
     supports_json_field = False
+    supports_combined_alters = False
 #    case_whennot_not_supported = True
 
     @cached_property
