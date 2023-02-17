@@ -60,14 +60,6 @@ except ImportError:
     e = sys.exc_info()[1]
     raise ImproperlyConfigured("Error loading pyodbc module: %s" % e)
 
-#logger = logging.getLogger('django.db.backends')
-#logger.setLevel(logging.DEBUG)
-#handler = logging.FileHandler('mylog.log')
-#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#handler.setFormatter(formatter)
-#logger.addHandler(handler)
-#logger.debug('This is a DEBUG message')
-
 m = re.match(r'(\d+)\.(\d+)\.(\d+)(?:-beta(\d+))?', Database.version)
 vlist = list(m.groups())
 if vlist[3] is None: vlist[3] = '9999'
@@ -424,7 +416,24 @@ class CursorWrapper(object):
             params = self.format_params(params)
             self.last_params = params
             sql = sql.replace('%%', '%')
-        return self.cursor.execute(sql, params)
+        try:
+           return self.cursor.execute(sql, params)
+        except IntegrityError:
+            e = sys.exc_info()[1]
+            raise utils.IntegrityError(*e.args)
+        except DatabaseError:
+            logger = logging.getLogger('django.db.backends')
+            #logger.setLevel(logging.ERROR)
+            #handler = logging.FileHandler('dmjango.log')
+            #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            #handler.setFormatter(formatter)
+            #logger.addHandler(handler)
+            logger.error('DEBUG SQL')
+            logger.error("----------------------------------------------------------------------------")
+            logger.error(sql)
+            logger.error(params)
+            e = sys.exc_info()[1]
+            raise utils.DatabaseError(*e.args)
         
     def executemany(self, sql, params_list):
         sql = self.format_sql(sql)
@@ -498,23 +507,3 @@ class CursorWrapper(object):
     def _savepoint_allowed(self):
         return self.in_atomic_block
     
-
-# copied from Django 
-# https://github.com/django/django/blob/0bf7b25f8f667d3710de91e91ae812efde05187c/django/db/backends/utils.py#L92
-# Not optimized/refactored to maintain a semblance to the original code 
-class CursorDebugWrapper(CursorWrapper):
-
-    def execute(self, sql, params=()):
-        start = time()
-        try:
-            return super().execute(sql, params)
-        except Exception:
-            stop = time()
-            duration = stop - start
-            logger.debug(
-                'rc=%d: %s; args=%s', -1, sql, params,
-            )
-
-    def executemany(self, sql, param_list):
-        start = time()
-        return super().executemany(sql, param_list)
