@@ -105,6 +105,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             "column": self.quote_name(field.column),
             "definition": definition,
         }
+        self.execute("set selinto commit 100;")
         self.execute(sql, params)
         # Drop the default if we need to
         # (Django usually does not use in-database defaults)
@@ -115,6 +116,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 "changes": changes_sql,
             }
             self.execute(sql, params)
+        self.execute("set selinto commit 0;")
         # Add an index, if required
         self.deferred_sql.extend(self._field_indexes_sql(model, field))
         # Add any FK constraints later
