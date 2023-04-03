@@ -273,8 +273,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cursor = self.create_cursor()
         cursor.execute("set string concat on")
         cursor.execute("set free catalog cache on")
-        #cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
-        cursor.execute("call SETSYSTEMOPTION(\'SELTMPBB\',\'1\')")
+        cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")       
         cursor.close()
         if not self.get_autocommit():
             self.commit()
