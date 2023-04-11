@@ -260,6 +260,12 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cursor.execute("set string concat on")
         cursor.execute("set free catalog cache on")
         cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+        options = self.settings_dict['OPTIONS']
+        if 'SELTMPBB' in options:
+           seltmpbb=options['SELTMPBB']
+           if(seltmpbb == True):
+              cursor.execute("call SETSYSTEMOPTION(\'SELTMPBB\', \'1\')")
+              cursor.execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
         cursor.close()
         if not self.get_autocommit():
             self.commit()
