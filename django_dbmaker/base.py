@@ -241,7 +241,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         if len(settings_dict['NAME'] or '') > self.ops.max_name_length():
             raise ImproperlyConfigured(
                 "The database name '%s' (%d characters) is longer than "
-                "PostgreSQL's limit of %d characters. Supply a shorter NAME "
+                "limit of %d characters. Supply a shorter NAME "
                 "in settings.DATABASES." % (
                     settings_dict['NAME'],
                     len(settings_dict['NAME']),
@@ -273,7 +273,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cursor = self.create_cursor()
         cursor.execute("set string concat on")
         cursor.execute("set free catalog cache on")
-        cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")       
+        cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+        options = self.settings_dict['OPTIONS']
+        if 'SELTMPBB' in options:
+           seltmpbb=options['SELTMPBB']
+           if(seltmpbb == True):
+              cursor.execute("call SETSYSTEMOPTION(\'SELTMPBB\', \'1\')")
+              cursor.execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
         cursor.close()
         if not self.get_autocommit():
             self.commit()
