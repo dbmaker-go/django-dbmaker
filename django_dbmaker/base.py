@@ -269,6 +269,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cursor.execute("set string concat on")
         cursor.execute("set free catalog cache on")
         cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+        cursor.execute("set itcmd on")
         if 'SELTMPBB' in options:
            seltmpbb=options['SELTMPBB']
            if(seltmpbb == True):
