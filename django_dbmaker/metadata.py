@@ -27,7 +27,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 __version__ = "2.2.17.14"
-__maintainer__ = "linda"
+__maintainer__ = "lindatest"
 __maintainer_email__ = "lina.102@163.com"
 __license__ = "BSD 3-Clause License"
 
