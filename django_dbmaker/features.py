@@ -43,6 +43,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
 #    case_whennot_not_supported = True
     supports_boolean_expr_in_select_clause = False
     supports_combined_alters = False
+    supports_comparing_boolean_expr = False
 
     @cached_property
     def introspected_field_types(self):

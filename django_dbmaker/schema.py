@@ -245,10 +245,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         if tablespace and self.connection.features.supports_tablespaces and field.unique:
             sql += " %s" % self.connection.ops.tablespace_sql(tablespace, inline=True)
         # Return the sql
-        return sql, params   
-   
-    def _alter_column_type_sql(self, table, old_field, new_field, new_type):
-        return super(DatabaseSchemaEditor, self)._alter_column_type_sql(table, old_field, new_field, new_type)
+        return sql, params
 
     def _alter_field(self, model, old_field, new_field, old_type, new_type,
                      old_db_params, new_db_params, strict=False):
@@ -350,7 +347,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             actions.append(fragment)
         # Type change?
         elif old_type != new_type:
-            fragment, other_actions = self._alter_column_type_sql(model, old_field, new_field, new_type)
+            fragment, other_actions = self._alter_column_type_sql(model, old_field, new_field, new_type, old_collation, new_collation)
             actions.append(fragment)
             post_actions.extend(other_actions)
         # When changing a column NULL constraint to NOT NULL with a given
@@ -455,7 +452,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             rel_db_params = new_rel.field.db_parameters(connection=self.connection)
             rel_type = rel_db_params['type']
             fragment, other_actions = self._alter_column_type_sql(
-                new_rel.related_model, old_rel.field, new_rel.field, rel_type
+                new_rel.related_model, old_rel.field, new_rel.field, rel_type, old_collation, new_collation
             )
             self.execute(
                 self.sql_alter_column % {
@@ -498,3 +495,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     def _rename_field_sql(self, table, old_field, new_field, new_type):
 #        new_type = self._set_field_new_type_null_status(old_field, new_type)
         return super(DatabaseSchemaEditor, self)._rename_field_sql(table, old_field, new_field, new_type)
+
+    def _collate_sql(self, collation, old_collation=None, table_name=None):
+        if collation is None and old_collation is not None:
+            collation = self._get_default_collation(table_name)
+        return super()._collate_sql(collation, old_collation, table_name)

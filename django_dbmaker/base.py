@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-# Copyright (c) 2008, django-pyodbc developers (see README.rst).
+# Copyright (c) 2008, django-dbmaker developers (see README.rst).
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -42,7 +42,9 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-MS SQL Server database backend for Django.
+DBMaker database backend for Django.
+
+Requires pyodbc: https://github.com/mkleehammer/pyodbc/
 """
 import datetime
 import logging
@@ -94,7 +96,7 @@ else:
 
 from django_dbmaker.operations import DatabaseOperations
 from django_dbmaker.client import DatabaseClient
-from django.utils import timezone
+import datetime
 from django.utils.asyncio import async_unsafe
 from django_dbmaker.creation import DatabaseCreation
 from django_dbmaker.introspection import DatabaseIntrospection
@@ -126,11 +128,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     data_types = {
         'AutoField':                    'serial',
         'BigAutoField':                 'bigserial',
-        'BigIntegerField':              'bigint',
         'BinaryField':                  'blob',
         'BooleanField':                 'int',
         'CharField':                    'nvarchar(%(max_length)s)',
-        'CommaSeparatedIntegerField':   'nvarchar(%(max_length)s)',
         'DateField':                    'date',
         'DateTimeField':                'timestamp',
         'DecimalField':                 'decimal(%(max_digits)s, %(decimal_places)s)',
@@ -138,17 +138,11 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'FileField':                    'nvarchar(%(max_length)s)',
         'FilePathField':                'nvarchar(%(max_length)s)',
         'FloatField':                   'double',
-        'GenericIPAddressField':        'nvarchar(39)',
         'IntegerField':                 'int',
-        'IPAddressField':               'nvarchar(15)',
         'JSONField':                    'jsoncols',
-        'LegacyDateField':              'timestamp',
-        'LegacyDateTimeField':          'timestamp',
-        'LegacyTimeField':              'time',
-        'NewDateField':                 'date',
-        'NewDateTimeField':             'timestamp',
-        'NewTimeField':                 'time',
-        'NullBooleanField':             'int',
+        'BigIntegerField':              'bigint',
+        'IPAddressField':               'nvarchar(15)',
+        'GenericIPAddressField':        'nvarchar(39)',
         'OneToOneField':                'int',
         'PositiveBigIntegerField':      'bigint',
         'PositiveIntegerField':         'int',
@@ -270,6 +264,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         cursor.execute("set free catalog cache on")
         cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
         cursor.execute("set itcmd on")
+        options = self.settings_dict["OPTIONS"].copy()
         if 'SELTMPBB' in options:
            seltmpbb=options['SELTMPBB']
            if(seltmpbb == True):
@@ -482,7 +477,7 @@ class CursorWrapper(object):
         fr = []
         for row in rows:
             if needs_utc and isinstance(row, datetime.datetime):
-                row = row.replace(tzinfo=timezone.utc)
+                row = row.replace(tzinfo=datetime.timezone.utc)
             fr.append(row)
         return tuple(fr)
 
