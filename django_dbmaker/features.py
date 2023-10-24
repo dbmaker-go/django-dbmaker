@@ -7,7 +7,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_regex_backreferencing = False
     supports_subqueries_in_group_by = False
     supports_transactions = True
-    allow_sliced_subqueries = False
     supports_paramstyle_pyformat = False
 
     has_bulk_insert = False
@@ -26,7 +25,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     implied_column_null = True
     supports_select_intersection = False
     supports_select_difference = False
-    update_can_self_select = False
     has_zoneinfo_database = False
     supports_ignore_conflicts = False
     allow_sliced_subqueries_with_in = False
@@ -40,10 +38,12 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     # Does the backend support NULLS FIRST and NULLS LAST in ORDER BY?
     supports_order_by_nulls_modifier = False
     supports_json_field = False
-#    case_whennot_not_supported = True
     supports_boolean_expr_in_select_clause = False
     supports_combined_alters = False
     supports_comparing_boolean_expr = False
+    has_select_for_update = True
+    select_for_update_of_column = True
+    requires_casted_case_in_updates = True
 
     @cached_property
     def introspected_field_types(self):
@@ -54,4 +54,5 @@ class DatabaseFeatures(BaseDatabaseFeatures):
             'PositiveSmallIntegerField': 'SmallIntegerField',
             'SmallAutoField': 'AutoField',
             'DurationField': 'BigIntegerField',
+            'GenericIPAddressField': 'CharField',
         }
