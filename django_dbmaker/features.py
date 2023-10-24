@@ -3,7 +3,6 @@ from django.utils.functional import cached_property
 
 class DatabaseFeatures(BaseDatabaseFeatures):
     can_use_chunked_reads = False
-    supports_microsecond_precision = False
     supports_regex_backreferencing = False
     supports_subqueries_in_group_by = False
     supports_transactions = True
@@ -11,20 +10,14 @@ class DatabaseFeatures(BaseDatabaseFeatures):
 
     has_bulk_insert = False
     # DateTimeField doesn't support timezones, only DateTimeOffsetField
-    has_zoneinfo_database = False
     supports_timezones = False
     supports_sequence_reset = False
     supports_tablespaces = True
-    ignores_nulls_in_unique_constraints = False
-    can_introspect_autofield = True
-    has_case_insensitive_like = False
     requires_literal_defaults = True
-    introspected_boolean_field_type = 'IntegerField'
-    can_introspect_small_integer_field = True
     supports_index_on_text_field = False
     implied_column_null = True
     supports_select_intersection = False
-    supports_select_difference = False
+#   supports_select_difference = False
     has_zoneinfo_database = False
     supports_ignore_conflicts = False
     allow_sliced_subqueries_with_in = False
@@ -39,7 +32,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_order_by_nulls_modifier = False
     supports_json_field = False
     supports_boolean_expr_in_select_clause = False
-    supports_combined_alters = False
     supports_comparing_boolean_expr = False
     has_select_for_update = True
     select_for_update_of_column = True
