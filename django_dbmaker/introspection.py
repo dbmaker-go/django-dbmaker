@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright (c) 2008, django-pyodbc developers (see README.rst).
+# Copyright (c) 2008, django-dbmaker developers (see README.rst).
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -57,7 +57,6 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     data_types_reverse = {
         Database.SQL_BIGINT:            'BigIntegerField',
         Database.SQL_BINARY:            'BinaryField',
-        Database.SQL_BIT:               'NullBooleanField',
         Database.SQL_CHAR:              'CharField',
         Database.SQL_DECIMAL:           'DecimalField',
         Database.SQL_DOUBLE:            'FloatField',
