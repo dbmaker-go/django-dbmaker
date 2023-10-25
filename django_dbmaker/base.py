@@ -70,38 +70,17 @@ if pyodbc_ver < (2, 0, 38, 9999):
     raise ImproperlyConfigured("pyodbc 2.0.38 or newer is required; you have %s" % Database.version)
 
 from django.db import utils
-try:
-    from django.db.backends.base.base import BaseDatabaseWrapper
-    from django.db.backends.base.validation import BaseDatabaseValidation
-except ImportError:
-    # import location prior to Django 1.8
-    from django.db.backends import BaseDatabaseWrapper, BaseDatabaseFeatures, BaseDatabaseValidation
-from django.db.backends.signals import connection_created
-
+from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.backends.base.validation import BaseDatabaseValidation
 from django.conf import settings
-from django import VERSION as DjangoVersion
-_DJANGO_VERSION = 30
-'''
-if DjangoVersion[:1] == (3):
-    _DJANGO_VERSION = 30
-else:
-    if DjangoVersion[0] == 1:
-        raise ImproperlyConfigured("Django %d.%d " % DjangoVersion[:2] + 
-            "is not supported on 2.+ versions of django-pyodbc.  Please look " +
-            "into the 1.x versions of django-pyodbc to see if your 1.x " +
-            "version of Django is supported by django-pyodbc")
-    else:
-        raise ImproperlyConfigured("Django %d.%d is not supported." % DjangoVersion[:2])
-'''
-
-from django_dbmaker.operations import DatabaseOperations
-from django_dbmaker.client import DatabaseClient
-import datetime
 from django.utils.asyncio import async_unsafe
-from django_dbmaker.creation import DatabaseCreation
-from django_dbmaker.introspection import DatabaseIntrospection
-from .schema import DatabaseSchemaEditor
+
+from .client import DatabaseClient
+from .creation import DatabaseCreation
 from .features import DatabaseFeatures
+from .introspection import DatabaseIntrospection
+from .operations import DatabaseOperations
+from .schema import DatabaseSchemaEditor
 
 DatabaseError = Database.Error
 IntegrityError = Database.IntegrityError
@@ -109,15 +88,7 @@ IntegrityError = Database.IntegrityError
 class DatabaseWrapper(BaseDatabaseWrapper):
     vendor = 'dbmaker'
     display_name = 'dbmaker'
-    _DJANGO_VERSION = _DJANGO_VERSION
-    drv_name = None
-    MARS_Connection = False
-    unicode_results = False
-    datefirst = 7
     Database = Database
-    limit_table_list = False
-    is_dbmaker = True
-    force_debug_cursor = True
 
     # Collations:       http://msdn2.microsoft.com/en-us/library/ms184391.aspx
     #                   http://msdn2.microsoft.com/en-us/library/ms179886.aspx
@@ -278,57 +249,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         with self.wrap_database_errors:
             self.connection.autocommit = autocommit
 
-    def _get_connection_string(self):
-        settings_dict = self.settings_dict
-        db_str, user_str, passwd_str, port_str = None, None, "", None
-        options = settings_dict['OPTIONS']
-        if settings_dict['NAME']:
-            db_str = settings_dict['NAME']
-        if settings_dict['HOST']:
-            host_str = settings_dict['HOST']
-        else:
-            host_str = 'localhost'
-        if settings_dict['USER']:
-            user_str = settings_dict['USER']
-        if settings_dict['PASSWORD']:
-            passwd_str = settings_dict['PASSWORD']
-        if settings_dict['PORT']:
-            port_str = settings_dict['PORT']
-
-        if not db_str:
-            raise ImproperlyConfigured('You need to specify NAME in your Django settings file.')
-
-        cstr_parts = []
-        if 'driver' in options:
-            driver = options['driver']
-        else:
-            driver = 'DBMaker 5.4 Driver'
-   
-        if 'dsn' in options:
-            cstr_parts.append('DSN=%s' % options['dsn'])
-        else:
-            # Only append DRIVER if DATABASE_ODBC_DSN hasn't been set
-            if os.path.isabs(driver):
-                cstr_parts.append('DRIVER=%s' % driver)
-            else:
-                cstr_parts.append('DRIVER={%s}' % driver)
-
-        if user_str:
-            cstr_parts.append('UID=%s;PWD=%s' % (user_str, passwd_str))
-
-        cstr_parts.append('DATABASE=%s' % db_str)
-        connectionstring = ';'.join(cstr_parts)
-        return connectionstring
-
     def create_cursor(self, name=None):
         return CursorWrapper(self.connection.cursor(), self)
-
-    def _execute_foreach(self, sql, table_names=None):
-        cursor = self.cursor()
-        if not table_names:
-            table_names = self.introspection.get_table_list(cursor)
-        for table_name in table_names:
-            cursor.execute(sql % self.ops.quote_name(table_name))
 
     def check_constraints(self, table_names=None):
         self.cursor().execute('CALL SETSYSTEMOPTION(\'FKCHK\', \'1\');')
@@ -360,7 +282,6 @@ class CursorWrapper(object):
     DB-API 2.0 implementation and b) some common ODBC driver particularities.
     """
     def __init__(self, cursor, connection):
-        self.active = True
         self.cursor = cursor
         self.connection = connection
         self.last_sql = ''
@@ -469,7 +390,7 @@ class CursorWrapper(object):
         Decode data coming from the database if needed and convert rows to tuples
         (pyodbc Rows are not sliceable).
         """
-        needs_utc = _DJANGO_VERSION >= 14 and settings.USE_TZ
+        needs_utc = settings.USE_TZ
         if not (needs_utc):
             return tuple(rows)
         # FreeTDS (and other ODBC drivers?) don't support Unicode yet, so we

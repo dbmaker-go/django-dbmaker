@@ -58,46 +58,10 @@ class DatabaseCreation(BaseDatabaseCreation):
     
     def _create_test_db(self, verbosity=1, autoclobber=False, keepdb=False):
         settings_dict = self.connection.settings_dict
+        test_name = self._get_test_db_name()
+        settings_dict['TEST']['NAME'] = test_name
 
-        if self.connection._DJANGO_VERSION >= 13:
-            test_name = self._get_test_db_name()
-        else:
-            if settings_dict['TEST_NAME']:
-                test_name = settings_dict['TEST_NAME']
-            else:
-                try:
-                    from django.db.backends.base.creation import TEST_DATABASE_PREFIX
-                except ImportError:
-                    # import location prior to Django 1.8
-                    from django.db.backends.creation import TEST_DATABASE_PREFIX
-                test_name = TEST_DATABASE_PREFIX + settings_dict['NAME']
-        if self.connection._DJANGO_VERSION >= 17:
-            settings_dict['TEST']['NAME'] = test_name
-        else:
-            if not settings_dict['TEST_NAME']:
-                settings_dict['TEST_NAME'] = test_name
-
-        if not self.connection.test_create:
-            '''
-            # use the existing database instead of creating a new one
-            if verbosity >= 1:
-                print("Dropping tables ... ")
-
-            self.connection.close()
-            settings_dict["NAME"] = test_name
-            cursor = self.connection.cursor()
-            qn = self.connection.ops.quote_name
-            sql = "SELECT distinct trim(FK_TBL_NAME), trim(PK_TBL_NAME) FROM SYSFOREIGNKEY" 
-            cursor.execute("CALL SETSYSTEMOPTION(\'FKCHK\', \'0\')")
-            
-            for row in cursor.execute(sql).fetchall():
-                cursor.execute("DROP TABLE %s" % row[0])
-                cursor.execute("DROP TABLE %s" % row[1])
-           
-            cursor.execute('CALL SETSYSTEMOPTION(\'FKCHK\', \'1\')')
-            self.connection.connection.commit()
-            '''
-            
+        if not self.connection.test_create:   
             return test_name
 
         return super(DatabaseCreation, self)._create_test_db(verbosity, autoclobber)

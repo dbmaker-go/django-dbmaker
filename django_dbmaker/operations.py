@@ -69,13 +69,14 @@ from django.utils.duration import duration_microseconds
 
 class DatabaseOperations(BaseDatabaseOperations):
     compiler_module = "django_dbmaker.compiler"
-    set_operators = {**BaseDatabaseOperations.set_operators, "difference": "EXCEPT"}  
     cast_char_field_without_max_length = 'VARCHAR(256)'
     cast_data_types = {
         'AutoField': 'INT',
         'BigAutoField': 'BIGINT',
+        'SmallAutoField': 'smallint',
         'TextField': cast_char_field_without_max_length,
     }
+
     def __init__(self, connection):
         super(DatabaseOperations, self).__init__(connection) 
         self.connection = connection
@@ -103,7 +104,7 @@ class DatabaseOperations(BaseDatabaseOperations):
             else:           
                 self._right_sql_quote = '"'
         return self._right_sql_quote
-        
+
     def conditional_expression_supported_in_where_clause(self, expression):
         if isinstance(expression, (Exists, Lookup,  WhereNode)):
             return True
@@ -170,16 +171,6 @@ class DatabaseOperations(BaseDatabaseOperations):
             return "MINUTE(%s)" % field_name
         else:
             return "SECOND(%s)" % field_name
-    
-    def date_interval_sql(self, timedelta):
-        """
-        implements the interval functionality for expressions
-        """
-        sec = timedelta.seconds + timedelta.days * 86400
-        sql = 'TIMESTAMPADD(\'s\', %d%%s, %%s)' % sec
-        if timedelta.microseconds:
-            sql = 'TIMESTAMPADD(\'f\', %d%%s, %s)' % (timedelta.microseconds, sql)
-        return sql
      
     def date_trunc_sql(self, lookup_type, field_name, tzname=None):
         if lookup_type =='year':
@@ -294,14 +285,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         cursor.execute(" select LAST_SERIAL from SYSCONINFO")
 #         cursor.execute("SELECT cast(count(*) as bigint) from %s" % table_name)
         return cursor.fetchone()[0]
-     
-    def fetch_returned_insert_id(self, cursor):
-        """
-        Given a cursor object that has just performed an INSERT/OUTPUT statement
-        into a table that has an auto-incrementing ID, returns the newly created
-        ID.
-        """
-        return cursor.fetchone()[0]
 
     def max_name_length(self):
         return 128
@@ -314,12 +297,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         if name.startswith(self.left_sql_quote) and name.endswith(self.right_sql_quote):
             return name # Quoting once is enough.
         return '%s%s%s' % (self.left_sql_quote, name, self.right_sql_quote)
-
-    def random_function_sql(self):
-        """
-        Returns a SQL expression that returns a random value.
-        """
-        return "RAND()"
 
     def last_executed_query(self, cursor, sql, params):
         """
@@ -390,13 +367,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         """
         return "BEGIN TRANSACTION"
 
-    def sql_for_tablespace(self, tablespace, inline=False):
-        """
-        Returns the SQL that will be appended to tables or rows to define
-        a tablespace. Returns '' if the backend doesn't use tablespaces.
-        """
-        return "ON %s" % self.quote_name(tablespace)
-
     def prep_for_like_query(self, x):
         """Prepares a value for use in a LIKE query."""
         # http://msdn2.microsoft.com/en-us/library/ms179859.aspx
@@ -445,23 +415,11 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def adapt_decimalfield_value(self, value, max_digits=None, decimal_places=None):
         return value
-    
-    def year_lookup_bounds(self, value):
-        """
-        Returns a two-elements list with the lower and upper bound to be used
-        with a BETWEEN operator to query a field value using a year lookup
-
-        `value` is an int, containing the looked-up year.
-        """
-        first = '%s-01-01 00:00:00'
-        last = '%s-12-31 23:59:59'
-        return [first % value, last % value]
    
     def get_db_converters(self, expression):
         converters = super().get_db_converters(expression)
         internal_type = expression.output_field.get_internal_type()       
-        #if internal_type == 'IntegerField':
-            #converters.append(self.convert_intfield_value)
+ 
         if internal_type == 'FloatField':
             converters.append(self.convert_floatfield_value)
         elif internal_type == 'UUIDField':
@@ -473,11 +431,6 @@ class DatabaseOperations(BaseDatabaseOperations):
     def convert_booleanfield_value(self, value, expression, connection):
         if value in (0, 1):
             value = bool(value)
-        return value
-
-    def convert_intfield_value(self, value, expression, connection):
-        if value is not None:
-            value = int(value)
         return value
     
     def convert_floatfield_value(self, value, expression, connection):
