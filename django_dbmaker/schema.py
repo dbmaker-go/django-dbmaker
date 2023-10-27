@@ -5,6 +5,7 @@ from django.db.backends.ddl_references import (
 from django.db.backends.utils import split_identifier
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.models import NOT_PROVIDED
+from django.db.backends.base.schema import _related_non_m2m_objects
 
 
 class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):

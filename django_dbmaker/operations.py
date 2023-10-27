@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright (c) 2008, django-pyodbc developers (see README.rst).
+# Copyright (c) 2008, django-dbmaker developers (see README.rst).
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -146,7 +146,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         params.append(col)
         return sql % tuple(params)
 
-    def date_extract_sql(self, lookup_type, field_name):
+    def date_extract_sql(self, lookup_type, sql, params):
         """
         Given a lookup_type of 'year', 'month', 'day' or 'week_day', returns
         the SQL that extracts a value from the given date field field_name.
@@ -154,35 +154,36 @@ class DatabaseOperations(BaseDatabaseOperations):
         if lookup_type == 'week_day':
             # DAYOFWEEK() returns an integer, 1-7, Sunday=1.
             # Note: WEEKDAY() returns 0-6, Monday=0.
-            return "DAYOFWEEK(%s)" % field_name
+            return f"DAYOFWEEK({sql})", params
         elif lookup_type == 'week':
-            return "WEEK(%s)" % field_name
+            return f"WEEK({sql})", params
         elif lookup_type == 'quarter':
-            return "QUARTER(%s)" % field_name
+            return f"QUARTER({sql})", params
         elif lookup_type == 'year':
-            return "YEAR(%s)" % field_name
+            return f"YEAR({sql})", params
         elif lookup_type == 'month':
-            return "MONTH(%s)" % field_name
+            return f"MONTH({sql})", params
         elif lookup_type == 'day':
-            return "DAYOFMONTH(%s)" % field_name
+            return f"DAYOFMONTH({sql})", params
         elif lookup_type == 'hour':
-            return "HOUR(%s)" % field_name
+            return f"HOUR({sql})", params
         elif lookup_type == 'minute':
-            return "MINUTE(%s)" % field_name
+            return f"MINUTE({sql})", params
         else:
-            return "SECOND(%s)" % field_name
+            return f"SECOND({sql})", params
      
-    def date_trunc_sql(self, lookup_type, field_name, tzname=None):
+    def date_trunc_sql(self, lookup_type, sql, params, tzname=None):
+        sql, params = self._convert_sql_to_tz(sql, params, tzname)
         if lookup_type =='year':
-            return "TO_DATE(STRDATE(%s,'start of year'), 'yyyy-mm-dd')" % field_name
+            return f"TO_DATE(STRDATE({sql},'start of year'), 'yyyy-mm-dd')" , params
         if lookup_type == 'month':
-            return "TO_DATE(STRDATE(%s, 'start of month'), 'yyyy-mm-dd')" % field_name
+            return f"TO_DATE(STRDATE({sql}, 'start of month'), 'yyyy-mm-dd')", params
         elif lookup_type == 'quarter':
-            return "MDY((QUARTER(%s)-1)*3+1, 1, YEAR(%s))" % (field_name , field_name)
+            return f"MDY((QUARTER({sql})-1)*3+1, 1, YEAR({sql}))", (*params, *params)
         elif lookup_type == 'week':
-            return "TO_DATE(STRDATE(%s, 'start of week'), 'yyyy-mm-dd')" % field_name
+            return f"TO_DATE(STRDATE({sql}, 'start of week'), 'yyyy-mm-dd')", params
         else:
-            return field_name
+            return f"{sql}", params
         #return "DATEADD(%s, DATEDIFF(%s, 0, %s), 0)" % (lookup_type, lookup_type, field_name)
 
     def format_for_duration_arithmetic(self, sql):
@@ -197,11 +198,11 @@ class DatabaseOperations(BaseDatabaseOperations):
             sql = (sql)  
         return fmt % sql
     
-    def _convert_field_to_tz(self, field_name, tzname):
+    def _convert_sql_to_tz(self, sql, params, tzname):
         if settings.USE_TZ and not tzname == 'UTC':
             offset = self._get_utcoffset(tzname)
-            field_name = 'TIMESTAMPADD(%s, %d, %s)' % ('s', offset, field_name)
-        return field_name
+            return f"TIMESTAMPADD(%s, %d, {sql})'" , ('s', offset, *params)
+        return sql, params
 
     def _get_utcoffset(self, tzname):
         """
@@ -213,42 +214,42 @@ class DatabaseOperations(BaseDatabaseOperations):
         delta = zone.localize(now, is_dst=False).utcoffset()
         return delta.days * 86400 + delta.seconds
 
-    def datetime_extract_sql(self, lookup_type, field_name, tzname):
-        field_name = self._convert_field_to_tz(field_name, tzname)
-        return self.date_extract_sql(lookup_type, field_name)
+    def datetime_extract_sql(self, lookup_type, sql, params, tzname):
+        sql, params = self._convert_sql_to_tz(sql, params, tzname)
+        return self.date_extract_sql(lookup_type, sql, params)
     
-    def datetime_cast_date_sql(self, field_name, tzname):
-        field_name = self._convert_field_to_tz(field_name, tzname)
-        return 'DATEPART(%s)' % field_name
+    def datetime_cast_date_sql(self, sql, params, tzname):
+        sql, params = self._convert_sql_to_tz(sql, params, tzname)
+        return f"DATEPART({sql})", params
     
-    def datetime_cast_time_sql(self, field_name, tzname):
-        field_name = self._convert_field_to_tz(field_name, tzname)
-        return "CAST(%s AS TIME)" % field_name
+    def datetime_cast_time_sql(self, sql, params, tzname):
+        sql, params = self._convert_sql_to_tz(sql, params, tzname)
+        return f"CAST({sql} AS TIME)", params
     
-    def datetime_trunc_sql(self, lookup_type, field_name, tzname):
-        field_name = self._convert_field_to_tz(field_name, tzname)
-        fields = ['year', 'month', 'day', 'hour', 'minute', 'week']
+    def datetime_trunc_sql(self, lookup_type, sql, params, tzname):
+        sql, params = self._convert_sql_to_tz(sql, params, tzname)
+        fields = ["year", "month", "day", "hour", "minute", "week"]
         if lookup_type == 'quarter':
-            return (
-                "CAST(MDY((QUARTER({field_name})-1)*3+1, 1, YEAR({field_name})) AS TIMESTAMP)"
-            ).format(field_name=field_name)
+            return f"CAST(MDY((QUARTER({sql})-1)*3+1, 1, YEAR({sql})) AS TIMESTAMP)", (*params, *params)
         if lookup_type == 'second':
-            return field_name
+            return sql, params
         try:
             i = fields.index(lookup_type)
         except ValueError:
-            sql = field_name
+            pass
         else:
-            sql = "CAST(STRDATETIME(%s, 'start of %s') AS TIMESTAMP)" % (field_name, fields[i])
-        return sql
+            param_str = "start of " + fields[i]
+            return f"CAST(STRDATETIME({sql}, %s) AS TIMESTAMP)" , (*params, param_str)
+        return sql, params
 
-    def time_trunc_sql(self, lookup_type, field_name, tzname=None):  
-        fields = ['hour', 'minute']
+    def time_trunc_sql(self, lookup_type, sql, params, tzname=None):  
+        fields = ["hour", "minute"]       
         if lookup_type in fields:
-            format_str = fields[lookup_type]
-            return "CAST(STRTIME(%s, 'start of %s') AS TIME)" % (field_name, format_str)
+            i = fields.index(lookup_type)
+            format_str = "start of" + fields[i]
+            return f"CAST(STRTIME({sql}, %s) AS TIME)", (*params, format_str)
         else:
-            return "CAST(STRTIME(%s) AS TIME)" % (field_name)
+            return f"CAST(STRTIME({sql}) AS TIME)", params
     
     def lookup_cast(self, lookup_type, internal_type=None):
         lookup = '%s'
