@@ -199,9 +199,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         return fmt % sql
     
     def _convert_sql_to_tz(self, sql, params, tzname):
-        if settings.USE_TZ and not tzname == 'UTC':
+        if tzname and settings.USE_TZ:
             offset = self._get_utcoffset(tzname)
-            return f"TIMESTAMPADD(%s, %d, {sql})'" , ('s', offset, *params)
+            return (f"TIMESTAMPADD(\'s\', {offset}, {sql})" , (params),)
         return sql, params
 
     def _get_utcoffset(self, tzname):
@@ -379,7 +379,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         need not necessarily be implemented using "LIKE" in the backend.
         """
         return x
-    
+
     def adapt_datetimefield_value(self, value):	
         """
         Transform a datetime value to an object compatible with what is expected

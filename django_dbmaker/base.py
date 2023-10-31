@@ -339,7 +339,9 @@ class CursorWrapper(object):
         self.last_sql = sql
         if (('CASE WHEN' in sql) or
              ( '(%s) AS' in sql) or
-             ('LIKE %s' in sql)) and params is not None:
+             ('LIKE %s' in sql) or
+             ('GROUP BY' in sql) or
+             ('COALESCE(' in sql)) and params is not None:
             sql = sql % tuple(map(self.quote_value, params))
             return self.cursor.execute(sql)
         else:
