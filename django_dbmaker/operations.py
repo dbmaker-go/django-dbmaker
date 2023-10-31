@@ -183,7 +183,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif lookup_type == 'week':
             return f"TO_DATE(STRDATE({sql}, 'start of week'), 'yyyy-mm-dd')", params
         else:
-            return f"{sql}", params
+            return f"CAST({sql} AS DATE)", params
         #return "DATEADD(%s, DATEDIFF(%s, 0, %s), 0)" % (lookup_type, lookup_type, field_name)
 
     def format_for_duration_arithmetic(self, sql):
