@@ -134,10 +134,10 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             for column, collation, is_autofield, is_json in cursor.fetchall()
         }
         # map pyodbc's cursor.columns to db-api cursor description
-        columns = [[c[3], c[4], None, c[6], c[6], c[8], c[10], c[12]] for c in cursor.columns(table=table_name)]
+        columns = [[c[3], c[4], c[6], c[6], c[6], c[8], c[10], c[12]] for c in cursor.columns(table=table_name)]
         items = []
         for column in columns:
-            name = column[0]            
+            name = column[0]
             column[0] = self.identifier_converter(column[0])
             collation, is_autofield, is_json = field_map[name]  
             items.append(FieldInfo(*column, collation, is_autofield, is_json))

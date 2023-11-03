@@ -445,4 +445,4 @@ class DatabaseOperations(BaseDatabaseOperations):
         return value
     
     def no_limit_value(self):
-        return None
+        return 2147483647
