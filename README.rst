@@ -9,13 +9,13 @@ This is a fork of the original `django-pyodbc <https://github.com/lionheart/djan
 Features
 --------
 
-* [x] Support for Django 4.0~
+* [x] Support for Django 4.~
 * [x] Support for DBMaker
 * [x] Passes most of the tests of the Django test suite.
 
 TODO
 --------
-* [ ] Python 3 support.
+* [ ] Python >=3.8 support.
 
 Installation
 ------------
@@ -40,7 +40,6 @@ Installation
             'HOST': 'HostIp:Port',
             'USER':'UserName',
             'PASSWORD':'',
-            'TEST_CREATE':False,
             'USE_TZ':False,
             'OPTIONS':{
                 'driver':'DBMaker 5.4 Driver',
@@ -81,8 +80,6 @@ Standard Django settings
     will be used.
 
 ``PASSWORD`` String. Database user password.
-
-``TEST_CREATE`` Boolean. Indicates if test need to create test db or keep db.
 
 ``OPTIONS`` Dictionary. Current available keys:
 
