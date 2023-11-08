@@ -1,0 +1,19 @@
+{
+  "name": "django-dbmaker",
+  "version": "2.2.17.14",
+  "description": "django-dbmaker is a `Django <http://djangoproject.com>`_ DBMaker DB backend powered by the `pyodbc <https://github.com/mkleehammer/pyodbc>`_ library. pyodbc is a mature, viable way to access DBMaker from Python in multiple platforms and is actively maintained",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dbmaker-go/django-dbmaker.git"
+  },
+  "author": "linda",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dbmaker-go/django-dbmaker/issues"
+  },
+  "homepage": "https://github.com/dbmaker-go/django-dbmaker#readme"
+}
