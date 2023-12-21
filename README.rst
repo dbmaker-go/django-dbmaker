@@ -9,13 +9,12 @@ This is a fork of the original `django-pyodbc <https://github.com/lionheart/djan
 Features
 --------
 
-* [x] Support for Django 4.~
+* [x] support for Django 2.X via `<https//github.com/dbmaker-go/django-dbmaker/>`_
+* [x] support for Django 3.X via `<https//github.com/dbmaker-go/django-dbmaker/tree/djang3.0/>`_
+* [x] support for Django 4.X via `<https//github.com/dbmaker-go/django-dbmaker/tree/djang4/>`_
 * [x] Support for DBMaker
 * [x] Passes most of the tests of the Django test suite.
-
-TODO
---------
-* [ ] Python >=3.8 support.
+* [x] support for Python >=3.8
 
 Installation
 ------------
@@ -61,9 +60,6 @@ Installation
 
        python -c 'import pyodbc; print(pyodbc.connect("DSN=DBSAMPLE5;UID=SYSADM;PWD=").cursor().execute("select 1"))'
 
-   *extended instructions* `here <https://github.com/lionheart/django-pyodbc/issues/10>`_
-
-
 Configuration
 -------------
 
@@ -86,6 +82,11 @@ Standard Django settings
 * ``driver``
 
     String. ODBC Driver to use. Default is ``"DBMaker 5.4 Driver"``.
+
+* ``SELTMPBB``
+
+    Boolean. Default False will set isolation committed, this may cause more lock timeout    error if concurrent select/update on same record very frequently.      
+    Set True will set isolation level uncommited for select does not held lock, this may reduce lock timeout for concurrent select/update on same record. It will also cast blob to temp blob for select query as a snapshot of the blob for select statement to prevent incorrect access for blob.
 
 From the original project README.
 
