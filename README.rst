@@ -9,9 +9,9 @@ This is a fork of the original `django-pyodbc <https://github.com/lionheart/djan
 Features
 --------
 
-* [x] support for Django 2.X via `<https//github.com/dbmaker-go/django-dbmaker/>`_
-* [x] support for Django 3.X via `<https//github.com/dbmaker-go/django-dbmaker/tree/django3/>`_
-* [x] support for Django 4.X via `<https//github.com/dbmaker-go/django-dbmaker/tree/django4/>`_
+* [x] support for Django 2.X via `<https://github.com/dbmaker-go/django-dbmaker/>`_
+* [x] support for Django 3.X via `<https://github.com/dbmaker-go/django-dbmaker/tree/django3/>`_
+* [x] support for Django 4.X via `<https://github.com/dbmaker-go/django-dbmaker/tree/django4/>`_
 * [x] Support for DBMaker
 * [x] Passes most of the tests of the Django test suite.
 * [x] support for Python 3
