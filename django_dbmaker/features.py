@@ -31,6 +31,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     allow_sliced_subqueries_with_in = False
     nulls_order_largest = True
     supports_combined_alters = False
+    can_defer_constraint_checks = True
     #has_select_for_update = True
     #has_select_for_update_nowait = True
     #has_select_for_update_of = True

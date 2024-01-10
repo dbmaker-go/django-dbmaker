@@ -26,8 +26,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-__version__ = "2.2.17.14"
-__maintainer__ = "lindatest"
+__version__ = "2.2.17.15"
+__maintainer__ = "linda"
 __maintainer_email__ = "lina.102@163.com"
 __license__ = "BSD 3-Clause License"
 
