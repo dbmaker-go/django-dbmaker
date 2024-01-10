@@ -1,3 +1,14 @@
+## 2.2.17.15 (2024-01-10)
+
+
+### Bug Fixes
+
+* **base.py:** ERROE(23000) referential constraint violation :
+                 Modify check_constraints() to check constraints by setting fkchk to True. Return False afterward.
+([48b9d20](https://github.com/dbmaker-go/django-dbmaker/commit/48b9d204c7881bca2400753e9a00a0aedc7b5b27))
+
+
+
 ## 2.2.17.14 (2023-10-11)
 
 
