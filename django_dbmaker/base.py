@@ -262,15 +262,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             self.cursor().execute('CALL SETSYSTEMOPTION(\'FKCHK\', \'0\');')
          
     def disable_constraint_checking(self):
-        # Windows Azure SQL Database doesn't support sp_msforeachtable
-        #cursor.execute('EXEC sp_msforeachtable "ALTER TABLE ? NOCHECK CONSTRAINT ALL"')
-        self.cursor().execute('CALL SETSYSTEMOPTION(\'FKCHK\', \'0\');')
+        with self.cursor() as cursor:
+            cursor.execute("CALL SETSYSTEMOPTION(\'FKCHK\', \'0\');")
         return True
                
     def enable_constraint_checking(self):
-        # Windows Azure SQL Database doesn't support sp_msforeachtable
-        #cursor.execute('EXEC sp_msforeachtable "ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL"')
-        self.check_constraints()
+        with self.cursor() as cursor:
+            cursor.execute('CALL SETSYSTEMOPTION(\'FKCHK\', \'1\');')
     
     def is_usable(self):
         try:
