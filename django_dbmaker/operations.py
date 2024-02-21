@@ -451,9 +451,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         Coerce the value returned by the database backend into a consistent
         type that is compatible with the field type.
 
-        In our case, cater for the fact that SQL Server < 2008 has no
-        separate Date and Time data types.
-        TODO: See how we'll handle this for SQL Server >= 2008
         """
         if value is None:
             return None

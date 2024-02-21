@@ -102,13 +102,6 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     def get_table_description(self, cursor, table_name, identity_check=True):
         """Returns a description of the table, with DB-API cursor.description interface.
-
-        The 'auto_check' parameter has been added to the function argspec.
-        If set to True, the function will check each of the table's fields for the
-        IDENTITY property (the IDENTITY property is the MSSQL equivalent to an AutoField).
-
-        When a field is found with an IDENTITY property, it is given a custom field number
-        of SQL_AUTOFIELD, which maps to the 'AutoField' value in the DATA_TYPES_REVERSE dict.
         """
 
         # map pyodbc's cursor.columns to db-api cursor description
