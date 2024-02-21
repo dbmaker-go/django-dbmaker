@@ -42,7 +42,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-MS SQL Server database backend for Django.
+DBMaker database backend for Django.
 """
 import datetime
 import logging
@@ -520,7 +520,7 @@ class CursorWrapper(object):
     def __iter__(self):
         return iter(self.cursor)
 
-    # # MS SQL Server doesn't support explicit savepoint commits; savepoints are
+    # # DBMaker doesn't support explicit savepoint commits; savepoints are
     # # implicitly committed with the transaction.
     # # Ignore them.
     def savepoint_commit(self, sid):

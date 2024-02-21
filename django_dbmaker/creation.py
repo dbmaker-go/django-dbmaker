@@ -45,7 +45,7 @@ from django.db.backends.base.creation import BaseDatabaseCreation
 
 
 class DatabaseCreation(BaseDatabaseCreation):
-    # This dictionary maps Field objects to their associated MS SQL column
+    # This dictionary maps Field objects to their associated DBMaker column
     # types, as strings. Column-type strings can contain format strings; they'll
     # be interpolated against the values of Field.__dict__ before being output.
     # If a column type is set to None, it won't be included in the output.
@@ -118,7 +118,7 @@ class DatabaseCreation(BaseDatabaseCreation):
     def _destroy_test_db(self, test_database_name, verbosity):
         "Internal implementation - remove the test db tables."
         if test_database_name:
-            # Remove the SQLite database file
+            # Remove the DBMaker database file
             os.remove(test_database_name)
 
     def _clone_test_db(self, suffix, verbosity, keepdb=False):
