@@ -81,7 +81,7 @@ class DatabaseCreation(BaseDatabaseCreation):
     def _destroy_test_db(self, test_database_name, verbosity):
         "Internal implementation - remove the test db tables."
         if test_database_name:
-            # Remove the SQLite database file
+            # Remove the DBMaker database file
             os.remove(test_database_name)
 
     def _clone_test_db(self, suffix, verbosity, keepdb=False):

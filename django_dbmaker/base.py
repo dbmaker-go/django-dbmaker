@@ -347,7 +347,20 @@ class CursorWrapper(object):
              ('GROUP BY' in sql) or
              ('COALESCE(' in sql)) and params is not None:
             sql = sql % tuple(map(self.quote_value, params))
-            return self.cursor.execute(sql)
+            try:
+               return self.cursor.execute(sql)
+            except (IntegrityError, DatabaseError) as e:
+               esg = e.args[1]
+               logger = logging.getLogger('django.db.backends')
+               logger.error('DEBUG SQL')
+               logger.error("----------------------------------------------------------------------------")
+               logger.error(
+                '%s \n SQL: %s\n', esg, sql)
+               e = sys.exc_info()[1]
+               if '[23000]' in esg:
+                  raise utils.IntegrityError(*e.args)
+               else:
+                  raise utils.DatabaseError(*e.args)
         else:
             sql = self.format_sql(sql, len(params))
             params = self.format_params(params)
@@ -355,22 +368,20 @@ class CursorWrapper(object):
             sql = sql.replace('%%', '%')
         try:
            return self.cursor.execute(sql, params)
-        except IntegrityError:
-            e = sys.exc_info()[1]
-            raise utils.IntegrityError(*e.args)
-        except DatabaseError:
+        except (IntegrityError, DatabaseError) as e:
+            esg = e.args[1]
             logger = logging.getLogger('django.db.backends')
-            #logger.setLevel(logging.ERROR)
-            #handler = logging.FileHandler('dmjango.log')
-            #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            #handler.setFormatter(formatter)
-            #logger.addHandler(handler)
             logger.error('DEBUG SQL')
             logger.error("----------------------------------------------------------------------------")
-            logger.error(sql)
+            logger.error(
+                '%s \n SQL: %s', esg, sql)
             logger.error(params)
+            logger.error('\n')
             e = sys.exc_info()[1]
-            raise utils.DatabaseError(*e.args)
+            if '[23000]' in esg:
+                raise utils.IntegrityError(*e.args)
+            else:
+                raise utils.DatabaseError(*e.args)
         
     def executemany(self, sql, params_list):
         sql = self.format_sql(sql)
@@ -429,7 +440,7 @@ class CursorWrapper(object):
         return iter(self.cursor)
 
 
-    # # MS SQL Server doesn't support explicit savepoint commits; savepoints are
+    # # DBMaker doesn't support explicit savepoint commits; savepoints are
     # # implicitly committed with the transaction.
     # # Ignore them.
     def savepoint_commit(self, sid):
