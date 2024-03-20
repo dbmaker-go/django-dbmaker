@@ -355,7 +355,7 @@ class CursorWrapper(object):
                logger.error('DEBUG SQL')
                logger.error("----------------------------------------------------------------------------")
                logger.error(
-                '%s \n SQL: %s\n', esg, sql)
+                '%s \n SQL: %s', esg, sql)
                e = sys.exc_info()[1]
                if '[23000]' in esg:
                   raise utils.IntegrityError(*e.args)
@@ -376,7 +376,6 @@ class CursorWrapper(object):
             logger.error(
                 '%s \n SQL: %s', esg, sql)
             logger.error(params)
-            logger.error('\n')
             e = sys.exc_info()[1]
             if '[23000]' in esg:
                 raise utils.IntegrityError(*e.args)
