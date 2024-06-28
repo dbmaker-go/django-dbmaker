@@ -115,17 +115,15 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 },
                 [default_val],
             )
-
-        if not field.null:
-            default_val = self.effective_default(field)
-            self.execute(
-                "ALTER TABLE %(table)s MODIFY %(column)s NULL TO NOT NULL GIVE %%s"
-                % {
-                    "table": self.quote_name(model._meta.db_table),
-                    "column": self.quote_name(field.column),
-                },
-                [default_val],
-            )
+            if not field.null:
+                self.execute(
+                    "ALTER TABLE %(table)s MODIFY %(column)s NULL TO NOT NULL GIVE %%s"
+                    % {
+                        "table": self.quote_name(model._meta.db_table),
+                        "column": self.quote_name(field.column),
+                    },
+                    [default_val],
+                )
         self.execute("set selinto commit 0;")
         # Add an index, if required
         self.deferred_sql.extend(self._field_indexes_sql(model, field))
