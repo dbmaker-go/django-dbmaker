@@ -249,6 +249,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         with self.wrap_database_errors:
             self.connection.autocommit = autocommit
 
+    @async_unsafe
     def create_cursor(self, name=None):
         return CursorWrapper(self.connection.cursor(), self)
 
