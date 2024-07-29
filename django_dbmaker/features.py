@@ -38,7 +38,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     requires_casted_case_in_updates = True
     allows_group_by_select_index = False
     allows_group_by_lob = False
-    can_defer_constraint_checks = True
 
     @cached_property
     def introspected_field_types(self):
