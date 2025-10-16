@@ -62,16 +62,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         db_params = field.db_parameters(connection=self.connection)
         if db_params['check']:
             definition += " " + self.sql_check_constraint % db_params
-        
-        #alter table t1 add c1 col_type default default_val: ==>
-        #  alter table t1 add c1 col_type;
-        #  update t1 set c1=default_val;
-        #if not null field:
-        #   alter table t1 modify c1 null to not null
-        if not self.skip_default(field) and self.effective_default(field) is not None:
-            index_default = definition.find("DEFAULT")
-            definition = definition[:index_default]
-
+       
         # Build the SQL and run it
         sql = self.sql_create_column % {
             "table": self.quote_name(model._meta.db_table),
@@ -81,25 +72,18 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         self.execute("set selinto commit 100;")
         self.execute(sql, params)
 
-        if not self.skip_default(field) and self.effective_default(field) is not None:
-            default_val = self.effective_default(field)
-            self.execute(
-                "UPDATE %(table)s SET %(column)s = %%s"
-                % {
-                    "table": self.quote_name(model._meta.db_table),
-                    "column": self.quote_name(field.column),
-                },
-                [default_val],
+        if (
+            not self.skip_default_on_alter(field)
+            and self.effective_default(field) is not None
+        ):
+            changes_sql, params = self._alter_column_default_sql(
+                model, None, field, drop=True
             )
-            if not field.null:            
-                self.execute(
-                    "ALTER TABLE %(table)s MODIFY %(column)s NULL TO NOT NULL GIVE %%s"
-                    % {
-                        "table": self.quote_name(model._meta.db_table),
-                        "column": self.quote_name(field.column),
-                    },
-                    [default_val],
-                )
+            sql = self.sql_alter_column % {
+                "table": self.quote_name(model._meta.db_table),
+                "changes": changes_sql,
+            }
+            self.execute(sql, params)
         self.execute("set selinto commit 0;")
         # Add an index, if required
         self.deferred_sql.extend(self._field_indexes_sql(model, field))
