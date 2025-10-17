@@ -71,7 +71,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         }
         self.execute("set selinto commit 100;")
         self.execute(sql, params)
-
+        # Drop the default if we need to
+        # (Django usually does not use in-database defaults)
         if (
             not self.skip_default_on_alter(field)
             and self.effective_default(field) is not None
@@ -175,7 +176,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     # If this is the case, the individual schema backend should
                     # implement prepare_default
                     #dbmaker nclob replace default_val to ''
-                    if field.get_internal_type() == 'TextField' and len(default_value)>31:
+                    if len(default_value)>31:
                         sql += " DEFAULT \'\'"
                     else:
                         sql += " DEFAULT %s" % self.prepare_default(default_value)
@@ -195,6 +196,18 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             sql += " PRIMARY KEY"
         elif field.unique:
             sql += " UNIQUE"
+        #dbmaker add give default_val if length of default_val >31
+        if include_default:
+            default_value = self.effective_default(field)
+            if default_value is not None:
+                if self.connection.features.requires_literal_defaults:
+                    # Some databases can't take defaults as a parameter (oracle)
+                    # If this is the case, the individual schema backend should
+                    # implement prepare_default
+                    #dbmaker nclob replace default_val to ''
+                    if len(default_value)>31:
+                        sql += " GIVE %s" % self.prepare_default(default_value)
+
         # Optionally add the tablespace if it's an implicitly indexed column
         tablespace = field.db_tablespace or model._meta.db_tablespace
         if tablespace and self.connection.features.supports_tablespaces and field.unique:
