@@ -1,6 +1,6 @@
 import datetime
 from django.db.backends.ddl_references import (
-    Columns, ForeignKeyName, Statement, Table,
+    Columns, ForeignKeyName, IndexName, Statement, Table,
 )
 from django.db.backends.utils import split_identifier
 from django.db.models import Index
@@ -177,7 +177,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     # If this is the case, the individual schema backend should
                     # implement prepare_default
                     #dbmaker nclob replace default_val to ''
-                    if len(default_value)>31:
+                    if (field.get_internal_type() == 'TextField' or 
+                        field.get_internal_type() == 'CharField') and  len(default_value)>31:
                         sql += " DEFAULT \'\'"
                     else:
                         sql += " DEFAULT %s" % self.prepare_default(default_value)
@@ -206,9 +207,9 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     # If this is the case, the individual schema backend should
                     # implement prepare_default
                     #dbmaker nclob replace default_val to ''
-                    if len(default_value)>31:
+                    if (field.get_internal_type() == 'TextField' or 
+                        field.get_internal_type() == 'CharField') and len(default_value)>31:
                         sql += " GIVE %s" % self.prepare_default(default_value)
-
         # Optionally add the tablespace if it's an implicitly indexed column
         tablespace = field.db_tablespace or model._meta.db_tablespace
         if tablespace and self.connection.features.supports_tablespaces and field.unique:
