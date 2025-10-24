@@ -279,7 +279,7 @@ WHERE FK_TBL_NAME = Upper(%s) """
                     'index': True if index != 'primarykey' else False, 
                 }
             constraints[index]['columns'].add(self.identifier_converter(column))    
-            constraints[index]['type'] = 'BTREE'
+            constraints[index]['type'] = 'idx' if type_ == 3 else type_
             constraints[index]['check'] = False
             constraints[index]['foreign_key'] = None
         
